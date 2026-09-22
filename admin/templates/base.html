@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Admin &mdash; MADE FOR NOTHING{% endblock %}</title>
+  <link rel="stylesheet" href="/admin-static/css/admin.css">
+  <script src="/admin-static/js/admin.js" defer></script>
+</head>
+<body data-mode="{% block body_mode %}default{% endblock %}">
+  <div class="admin-layout">
+    <header class="admin-header">
+      <div class="admin-title">
+        <a href="/" style="text-decoration: none; color: inherit;">MADE FOR NOTHING</a>
+        <span class="admin-badge">Admin &bull; Local Only</span>
+      </div>
+      <nav class="admin-nav">
+        <a href="/">Dashboard</a>
+        <a href="/posts/new" class="btn btn-primary btn-sm">+ New Post</a>
+        <a href="{{ public_base_url }}" target="_blank" class="btn btn-secondary btn-sm">View Public Site &nearr;</a>
+      </nav>
+    </header>
+
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

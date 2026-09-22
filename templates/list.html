@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}{{ type_title }} &mdash; MADE FOR NOTHING{% endblock %}
+{% block description %}{{ type_description }}{% endblock %}
+
+{% block content %}
+<header class="archive-view-header">
+  <div class="meta-row" style="margin-bottom: 0.6rem;">
+    <span class="type-badge">{{ current_type }}</span>
+    {% if posts %}
+      <span class="meta-dot">&bull;</span>
+      <span>{{ posts|length }} {{ "inquiry" if posts|length == 1 else "inquiries" }}</span>
+    {% endif %}
+  </div>
+  <h1 class="archive-view-title">{{ type_title }}</h1>
+  <p class="archive-view-desc">{{ type_description }}</p>
+</header>
+
+<section>
+  {% if posts %}
+    <div class="archive-entries-stream">
+      {% for post in posts %}
+        <article class="archive-entry-block">
+          <div class="meta-row">
+            {% if post.published_at %}
+              <time datetime="{{ post.published_at.strftime('%Y-%m-%d') }}">
+                {{ post.published_at.strftime('%B %d, %Y') }}
+              </time>
+            {% endif %}
+            {% if post.reading_time %}
+              <span class="meta-dot">&bull;</span>
+              <span>{{ post.reading_time }} min read</span>
+            {% endif %}
+          </div>
+
+          <h2 class="archive-entry-title">
+            <a href="/{{ post.type }}/{{ post.slug }}">{{ post.title }}</a>
+          </h2>
+
+          <p class="archive-entry-summary">{{ post.excerpt }}</p>
+
+          {% if post.tags %}
+            <div class="tag-list">
+              {% for tag in post.tags %}
+                <span class="tag">#{{ tag }}</span>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">No published {{ current_type }} entries yet in this section.</p>
+  {% endif %}
+</section>
+{% endblock %}

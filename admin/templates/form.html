@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {{ "Edit Post" if post else "New Post" }} &mdash; MADE FOR NOTHING Admin
+{% endblock %}
+
+{% block body_mode %}{{ "edit" if post else "new" }}{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+  <div>
+    <a href="/" style="font-size: 0.85rem; color: var(--admin-muted); text-decoration: none;">&larr; Back to Dashboard</a>
+    <h1 style="margin: 0.25rem 0 0; font-size: 1.5rem;">
+      {{ "Edit Entry" if post else "New Entry" }}
+    </h1>
+  </div>
+  {% if post and post.is_published %}
+    <a href="{{ public_base_url }}/{{ post.type }}/{{ post.slug }}" target="_blank" class="btn btn-secondary btn-sm">
+      View Live &nearr;
+    </a>
+  {% endif %}
+</div>
+
+{% if error %}
+  <div class="alert alert-error">
+    {{ error }}
+  </div>
+{% endif %}
+
+<form method="POST" action="{{ '/posts/' ~ post.id ~ '/edit' if post else '/posts/new' }}">
+  <!-- Core Identity & Publishing Controls -->
+  <div class="form-card" style="margin-bottom: 1.5rem;">
+    <div class="form-grid form-grid-2">
+      <div class="form-group">
+        <label for="title">Title *</label>
+        <input type="text" id="title" name="title" value="{{ post.title if post else '' }}" required class="form-control" placeholder="e.g. Architecture of Deliberate Software">
+      </div>
+
+      <div class="form-group">
+        <label for="slug">Slug *</label>
+        <input type="text" id="slug" name="slug" value="{{ post.slug if post else '' }}" required class="form-control font-mono" placeholder="e.g. architecture-of-deliberate-software">
+        <span class="form-hint">Unique URL path identifier.</span>
+      </div>
+    </div>
+
+    <div class="form-grid form-grid-2" style="margin-top: 1.25rem;">
+      <div class="form-group">
+        <label for="type">Content Type *</label>
+        <select id="type" name="type" required class="form-control">
+          {% for t in valid_types %}
+            <option value="{{ t }}" {% if post and post.type == t %}selected{% endif %}>{{ t|capitalize }}</option>
+          {% endfor %}
+        </select>
+        <span class="form-hint">Select archive destination.</span>
+      </div>
+
+      <!-- Editorial Status & Landing Page Toggles -->
+      <div class="form-group" style="gap: 0.75rem; background: #fdfdfd; padding: 0.85rem; border: 1px solid var(--admin-border); border-radius: 4px;">
+        <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; margin: 0;">
+          <input type="checkbox" name="is_published" value="1" {% if post and post.is_published %}checked{% endif %} style="width: 1.15rem; height: 1.15rem; margin-top: 0.15rem;">
+          <div>
+            <strong style="color: var(--admin-text);">Publish Entry</strong>
+            <div style="font-size: 0.75rem; color: var(--admin-muted);">Makes this item publicly indexable in its archive section.</div>
+          </div>
+        </label>
+
+        <hr style="margin: 0.25rem 0; border: none; border-top: 1px dashed var(--admin-border);">
+
+        <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; margin: 0;">
+          <input type="checkbox" name="show_on_landing" id="show_on_landing" value="1" {% if post and post.show_on_landing %}checked{% endif %} style="width: 1.15rem; height: 1.15rem; margin-top: 0.15rem;">
+          <div>
+            <strong style="color: #0f5132;">Show on Landing Page ("Start Here")</strong>
+            <div style="font-size: 0.75rem; color: var(--admin-muted);">
+              When checked and published, featured in the curated homepage selection.
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top: 1.25rem;">
+      <label for="excerpt">Excerpt / Summary *</label>
+      <textarea id="excerpt" name="excerpt" rows="2" required class="form-control" placeholder="Precise, informative summary for archive listings, landing page, and meta descriptions...">{{ post.excerpt if post else '' }}</textarea>
+    </div>
+  </div>
+
+  <!-- Split Markdown Editor -->
+  <div class="form-card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+      <label for="content_markdown" style="font-weight: 600; font-size: 0.9rem;">
+        Content (Markdown) *
+      </label>
+      <span style="font-size: 0.75rem; color: var(--admin-muted);">
+        Supports Headings, Tables, Code blocks, Quotes, Lists, Rules
+      </span>
+    </div>
+
+    <div class="editor-container">
+      <div class="editor-pane">
+        <textarea id="content_markdown" name="content_markdown" required class="form-control editor-textarea" placeholder="# Heading 1&#10;&#10;Write your inquiry here in standard Markdown...&#10;&#10;```python&#10;def deliberate_system():&#10;    pass&#10;```">{{ post.content_markdown if post else '' }}</textarea>
+      </div>
+      <div class="editor-pane">
+        <div id="markdown-preview" class="preview-pane">
+          <em>Live preview will render here as you type...</em>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tags & External Links -->
+  <div class="form-grid form-grid-2" style="margin-bottom: 1.5rem;">
+    <div class="form-card">
+      <div class="form-group">
+        <label for="tags">Tags</label>
+        <input type="text" id="tags" name="tags" value="{{ post.tags|join(', ') if (post and post.tags) else '' }}" class="form-control" placeholder="distributed-systems, algorithms, architecture">
+        <span class="form-hint">Comma-separated keywords.</span>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+        <label style="font-weight: 600; font-size: 0.85rem; margin: 0;">External References &amp; Links</label>
+        <button type="button" id="add-link-btn" class="btn btn-secondary btn-sm">+ Add Link</button>
+      </div>
+      <div id="external-links-container">
+        {% if post and post.external_links %}
+          {% for link in post.external_links %}
+            <div class="link-row">
+              <input type="text" name="link_title[]" value="{{ link.title or '' }}" placeholder="Citation / Source Title" class="form-control">
+              <input type="url" name="link_url[]" value="{{ link.url or '' }}" placeholder="https://..." class="form-control">
+              <button type="button" class="btn btn-danger btn-sm remove-link-btn">&times;</button>
+            </div>
+          {% endfor %}
+        {% else %}
+          <div class="link-row">
+            <input type="text" name="link_title[]" placeholder="Citation / Source Title" class="form-control">
+            <input type="url" name="link_url[]" placeholder="https://..." class="form-control">
+            <button type="button" class="btn btn-danger btn-sm remove-link-btn">&times;</button>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Continue Reading Selection (Max 3) -->
+  <div class="form-card" style="margin-bottom: 1.5rem;">
+    <label style="font-weight: 600; font-size: 0.9rem; margin-bottom: 0.25rem; display: block;">
+      Continue Reading Items (Select up to 3)
+    </label>
+    <p class="form-hint" style="margin-bottom: 0.75rem;">
+      Manually choose up to three published entries to appear at the end of this article.
+    </p>
+
+    <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+      {% for i in range(1, 4) %}
+        {% set current_val = post.continue_reading_slugs[i-1] if (post and post.continue_reading_slugs and post.continue_reading_slugs|length >= i) else '' %}
+        <div class="form-group">
+          <label for="continue_reading_{{ i }}">Slot {{ i }}</label>
+          <select id="continue_reading_{{ i }}" name="continue_reading_slugs[]" class="form-control">
+            <option value="">-- None --</option>
+            {% for item in available_posts %}
+              <option value="{{ item.slug }}" {% if current_val == item.slug %}selected{% endif %}>
+                [{{ item.type|upper }}] {{ item.title }}
+              </option>
+            {% endfor %}
+          </select>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- SEO Metadata -->
+  <div class="form-card" style="margin-bottom: 2rem;">
+    <h3 style="font-size: 1rem; margin-top: 0; margin-bottom: 1rem;">SEO &amp; Social Metadata</h3>
+    <div class="form-grid form-grid-2">
+      <div class="form-group">
+        <label for="seo_title">Custom SEO Title</label>
+        <input type="text" id="seo_title" name="seo_title" value="{{ post.seo_title if (post and post.seo_title) else '' }}" class="form-control" placeholder="Leave empty to use Post Title">
+      </div>
+
+      <div class="form-group">
+        <label for="seo_description">Custom Meta Description</label>
+        <textarea id="seo_description" name="seo_description" rows="2" class="form-control" placeholder="Leave empty to use Post Excerpt">{{ post.seo_description if (post and post.seo_description) else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display: flex; gap: 1rem; align-items: center;">
+    <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.6rem; font-size: 0.95rem;">
+      {{ "Save Changes" if post else "Create Post" }}
+    </button>
+    <a href="/" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+{% endblock %}

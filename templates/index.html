@@ -1,0 +1,233 @@
+{% extends "base.html" %}
+
+{% block title %}MADE FOR NOTHING &mdash; An Archive of Ideas{% endblock %}
+{% block description %}An evolving archive of questions, research, experiments, writing, books, and things worth understanding.{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "MADE FOR NOTHING",
+  "url": "{{ base_url }}",
+  "description": "An evolving archive of questions, research, experiments, writing, books, and things worth understanding."
+}
+</script>
+{% endblock %}
+
+{% block content %}
+
+<!-- HERO -->
+<section class="hero-section" aria-labelledby="hero-title">
+
+  <div class="hero-meta">
+    <span class="status-indicator" aria-hidden="true"></span>
+    <span>AN OPEN ARCHIVE OF IDEAS</span>
+  </div>
+
+  <h1 id="hero-title" class="hero-heading">
+    Some questions are<br>
+    <em>worth staying with.</em>
+  </h1>
+
+  <p class="hero-summary">
+    MADE FOR NOTHING is an evolving record of things worth understanding —
+    ideas followed beyond the obvious answer, questions investigated from
+    first principles, experiments that failed, and discoveries that changed
+    the way something was seen.
+  </p>
+
+  <div class="hero-rhythms">
+    <span><strong>Read.</strong> Find something unfamiliar.</span>
+    <span class="rhythm-sep">&bull;</span>
+    <span><strong>Question.</strong> Don't stop at the first answer.</span>
+    <span class="rhythm-sep">&bull;</span>
+    <span><strong>Experiment.</strong> Find out for yourself.</span>
+    <span class="rhythm-sep">&bull;</span>
+    <span><strong>Build.</strong> Make the idea tangible.</span>
+  </div>
+
+</section>
+
+
+<!-- SELECTED -->
+<section class="page-section" aria-labelledby="start-here-heading">
+
+  <div class="section-top">
+    <h2 id="start-here-heading" class="section-title">Begin Anywhere</h2>
+    <span class="section-note">A few things worth opening</span>
+  </div>
+
+  {% if selected_posts %}
+
+    <div class="curated-list">
+
+      {% for post in selected_posts %}
+
+        <article class="curated-entry">
+
+          <div>
+
+            <div class="entry-meta">
+              <a href="/{{ post.type }}" class="meta-badge">
+                {{ post.type }}
+              </a>
+
+              {% if post.published_at %}
+                <span class="meta-sep">&bull;</span>
+                <time datetime="{{ post.published_at.strftime('%Y-%m-%d') }}">
+                  {{ post.published_at.strftime('%B %Y') }}
+                </time>
+              {% endif %}
+
+              {% if post.reading_time %}
+                <span class="meta-sep">&bull;</span>
+                <span>{{ post.reading_time }} min</span>
+              {% endif %}
+            </div>
+
+            <h3 class="curated-title">
+              <a href="/{{ post.type }}/{{ post.slug }}">
+                {{ post.title }}
+              </a>
+            </h3>
+
+            <p class="curated-desc">
+              {{ post.excerpt }}
+            </p>
+
+          </div>
+
+          <div class="curated-bottom">
+
+            {% if post.tags %}
+              <div class="tag-row">
+                {% for tag in post.tags %}
+                  <span class="tag-pill">#{{ tag }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+
+            <a href="/{{ post.type }}/{{ post.slug }}" class="entry-link">
+              Enter &rarr;
+            </a>
+
+          </div>
+
+        </article>
+
+      {% endfor %}
+
+    </div>
+
+  {% else %}
+
+    <p class="empty-notice">
+      The archive is still being written.
+    </p>
+
+  {% endif %}
+
+</section>
+
+
+<!-- ARCHIVE -->
+<section class="page-section" aria-labelledby="archive-heading">
+
+  <div class="section-top">
+    <h2 id="archive-heading" class="section-title">The Archive</h2>
+    <span class="section-note">Follow a thread</span>
+  </div>
+
+  <div class="archive-grid">
+
+    {% for section in archive_sections %}
+
+      <a href="/{{ section.type }}" class="archive-item">
+
+        <div class="archive-item-head">
+
+          <span class="archive-item-title">
+            {{ section.title }}
+          </span>
+
+          <span class="archive-item-arrow" aria-hidden="true">
+            &rarr;
+          </span>
+
+        </div>
+
+        <p class="archive-item-desc">
+          {{ section.desc }}
+        </p>
+
+      </a>
+
+    {% endfor %}
+
+  </div>
+
+</section>
+
+
+<!-- RECENT -->
+{% if recent_posts %}
+
+<section class="page-section" aria-labelledby="recent-heading">
+
+  <div class="section-top">
+    <h2 id="recent-heading" class="section-title">Latest Notes</h2>
+    <span class="section-note">Recently added</span>
+  </div>
+
+  <div class="ledger-list">
+
+    {% for post in recent_posts %}
+
+      <div class="ledger-row">
+
+        <div class="ledger-main">
+
+          <span class="ledger-num">
+            {{ "%02d"|format(loop.index) }}
+          </span>
+
+          <a href="/{{ post.type }}" class="meta-badge">
+            {{ post.type }}
+          </a>
+
+          <a href="/{{ post.type }}/{{ post.slug }}" class="ledger-title">
+            {{ post.title }}
+          </a>
+
+        </div>
+
+        <div class="ledger-side">
+
+          {% if post.reading_time %}
+            <span class="ledger-time">
+              {{ post.reading_time }} min
+            </span>
+          {% endif %}
+
+          {% if post.published_at %}
+            <time
+              datetime="{{ post.published_at.strftime('%Y-%m-%d') }}"
+              class="ledger-date">
+              {{ post.published_at.strftime('%b %d, %Y') }}
+            </time>
+          {% endif %}
+
+        </div>
+
+      </div>
+
+    {% endfor %}
+
+  </div>
+
+</section>
+
+{% endif %}
+
+{% endblock %}

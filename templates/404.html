@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Page Not Located &mdash; MADE FOR NOTHING{% endblock %}
+{% block description %}The requested page could not be located in the archive.{% endblock %}
+
+{% block content %}
+<section class="archive-view-header" style="text-align: center; margin: 1.5rem auto 3rem; max-width: 600px;">
+  <div class="meta-row" style="justify-content: center; margin-bottom: 0.75rem;">
+    <span class="type-badge">404 &bull; Not Located</span>
+  </div>
+  <h1 class="archive-view-title" style="margin-bottom: 0.5rem;">Entry Not Located</h1>
+  <p class="archive-view-desc" style="font-style: normal; margin-bottom: 1.25rem;">
+    The item you are searching for does not exist in this archive or may have been relocated.
+  </p>
+  <a href="/" class="editorial-link">&larr; Return to Homepage Index</a>
+</section>
+
+<!-- Suggested Recent Articles -->
+{% if recent_posts %}
+<section class="page-section" style="margin-bottom: 2.75rem;">
+  <div class="section-top">
+    <h2 class="section-title">Recent Inquiries</h2>
+    <span class="section-note">Recommended notebook entries</span>
+  </div>
+
+  <div class="ledger-list">
+    {% for post in recent_posts %}
+      <div class="ledger-row">
+        <div class="ledger-main">
+          <a href="/{{ post.type }}" class="meta-badge">{{ post.type }}</a>
+          <a href="/{{ post.type }}/{{ post.slug }}" class="ledger-title">{{ post.title }}</a>
+        </div>
+        <div class="ledger-side">
+          {% if post.reading_time %}
+            <span class="ledger-time">{{ post.reading_time }} min</span>
+          {% endif %}
+          {% if post.published_at %}
+            <time datetime="{{ post.published_at.strftime('%Y-%m-%d') }}" class="ledger-date">
+              {{ post.published_at.strftime('%b %d, %Y') }}
+            </time>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<!-- Archive Sections Directory -->
+{% if archive_sections %}
+<section class="page-section">
+  <div class="section-top">
+    <h2 class="section-title">Browse the Archive</h2>
+    <span class="section-note">Explore by domain of inquiry</span>
+  </div>
+
+  <div class="archive-grid">
+    {% for section in archive_sections %}
+      <a href="/{{ section.type }}" class="archive-item">
+        <div class="archive-item-head">
+          <span class="archive-item-title">{{ section.title }}</span>
+          <span class="archive-item-arrow" aria-hidden="true">&rarr;</span>
+        </div>
+        <p class="archive-item-desc">{{ section.desc }}</p>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+{% endblock %}

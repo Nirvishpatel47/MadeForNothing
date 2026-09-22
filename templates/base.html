@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}MADE FOR NOTHING &mdash; Independent Research Archive{% endblock %}</title>
+  <meta name="description" content="{% block description %}A high-precision personal research archive exploring distributed systems, durable software architecture, theoretical computing, and philosophy.{% endblock %}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{{ canonical_url }}">
+
+  <!-- Theme init script strictly before render to eliminate flash of unstyled theme -->
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('mfn_theme');
+        var theme = saved || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+        if (theme === 'dark') {
+          document.documentElement.setAttribute('data-theme', 'dark');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+      } catch (e) {}
+    })();
+  </script>
+
+  <!-- Google Fonts: Inter (UI/Tech Sans), Newsreader (Editorial Serif), JetBrains Mono (Technical Code) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+
+  <!-- Open Graph & Social -->
+  <meta property="og:site_name" content="MADE FOR NOTHING">
+  <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}">
+  <meta property="og:type" content="{% block og_type %}website{% endblock %}">
+  <meta property="og:url" content="{{ canonical_url }}">
+
+  <!-- Twitter / Fediverse -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="{{ self.title() }}">
+  <meta name="twitter:description" content="{{ self.description() }}">
+
+  {% block json_ld %}{% endblock %}
+
+  <!-- Stylesheet & Script -->
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+  <script src="/static/js/main.js" defer></script>
+</head>
+<body>
+  <!-- Skip to Main Content Link for Keyboard and Screen Reader Accessibility -->
+  <a href="#main-content" class="skip-link">Skip to main content</a>
+
+  <!-- GPU-Accelerated Reading Progress Bar -->
+  <div id="reading-progress-bar" class="reading-progress" aria-hidden="true"></div>
+
+  <!-- High-Precision Top Header -->
+  <header class="site-header">
+    <div class="header-container">
+      <div class="brand-block">
+        <a href="/" class="site-brand">
+          <span class="brand-name">MADE FOR NOTHING</span>
+        </a>
+      </div>
+
+      <div class="header-right">
+        <nav class="site-nav" aria-label="Archive Sections">
+          <a href="/writing" class="nav-link {% if current_type == 'writing' %}active{% endif %}" {% if current_type == 'writing' %}aria-current="page"{% endif %}>Writing</a>
+          <a href="/research" class="nav-link {% if current_type == 'research' %}active{% endif %}" {% if current_type == 'research' %}aria-current="page"{% endif %}>Research</a>
+          <a href="/experiments" class="nav-link {% if current_type == 'experiments' %}active{% endif %}" {% if current_type == 'experiments' %}aria-current="page"{% endif %}>Experiments</a>
+          <a href="/projects" class="nav-link {% if current_type == 'projects' %}active{% endif %}" {% if current_type == 'projects' %}aria-current="page"{% endif %}>Projects</a>
+          <a href="/books" class="nav-link {% if current_type == 'books' %}active{% endif %}" {% if current_type == 'books' %}aria-current="page"{% endif %}>Books</a>
+          <a href="/about" class="nav-link {% if current_type == 'about' %}active{% endif %}" {% if current_type == 'about' %}aria-current="page"{% endif %}>About</a>
+        </nav>
+
+        <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle dark/light mode" title="Toggle dark/light mode">
+          <span class="theme-icon sun-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <line x1="12" y1="1" x2="12" y2="3"></line>
+              <line x1="12" y1="21" x2="12" y2="23"></line>
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+              <line x1="1" y1="12" x2="3" y2="12"></line>
+              <line x1="21" y1="12" x2="23" y2="12"></line>
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+            </svg>
+          </span>
+          <span class="theme-icon moon-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Website Content Container -->
+  <main id="main-content" class="site-main" tabindex="-1">
+    <div class="content-container {% block container_class %}{% endblock %}">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Full-Width High-Tech Footer -->
+  <footer class="site-footer">
+  <div class="footer-container">
+<div class="footer-brand-col">
+  <div class="footer-brand-header">
+    <span class="brand-name">MADE FOR NOTHING</span>
+  </div>
+
+  <p class="footer-summary">
+    An evolving archive of questions, research, experiments, writing,
+    books, and things worth understanding.
+  </p>
+
+  <div class="footer-specs">
+    <span class="spec-item">INDEPENDENT</span>
+    <span class="spec-item">OPEN ACCESS</span>
+    <span class="spec-item">NO TRACKING</span>
+  </div>
+</div>
+
+<div class="footer-nav-col">
+  <div class="footer-col-title">Explore</div>
+
+  <ul class="footer-links">
+    <li><a href="/writing"><span class="link-code">01</span> Writing</a></li>
+    <li><a href="/research"><span class="link-code">02</span> Research</a></li>
+    <li><a href="/experiments"><span class="link-code">03</span> Experiments</a></li>
+    <li><a href="/projects"><span class="link-code">04</span> Projects</a></li>
+    <li><a href="/books"><span class="link-code">05</span> Books</a></li>
+  </ul>
+</div>
+
+<div class="footer-nav-col">
+  <div class="footer-col-title">About</div>
+
+  <ul class="footer-links">
+    <li><a href="/about">About the Archive</a></li>
+    <li><a href="/sitemap.xml">Sitemap</a></li>
+    <li><a href="/robots.txt">Robots.txt</a></li>
+    <li><a href="#main-content" class="back-to-top">&uarr; Return to Top</a></li>
+  </ul>
+</div>
+
+  </div>
+
+  <div class="footer-bottom-bar">
+    <div class="footer-bottom-inner">
+      <div>
+        MADE FOR NOTHING &mdash; Built with Python, PostgreSQL &amp; the open web.
+      </div>
+
+  <div>
+    No cookies &bull; No marketing telemetry
+  </div>
+</div>
+
+  </div>
+</footer>
+
+<style>
+/* =========================================================
+   MADE FOR NOTHING — EDITORIAL FOOTER
+   ========================================================= */
+
+.site-footer {
+  margin-top: 8rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg);
+}
+
+
+/* ---------------------------------------------------------
+   MAIN FOOTER
+   --------------------------------------------------------- */
+
+.footer-container {
+  width: min(1180px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 4.5rem 0 4rem;
+
+  display: grid;
+  grid-template-columns:
+    minmax(0, 1.6fr)
+    minmax(140px, 0.7fr)
+    minmax(140px, 0.7fr);
+
+  gap: 5rem;
+}
+
+
+/* ---------------------------------------------------------
+   BRAND / DESCRIPTION
+   --------------------------------------------------------- */
+
+.footer-brand-col {
+  max-width: 500px;
+}
+
+.footer-brand-header {
+  margin-bottom: 1.25rem;
+}
+
+.footer-brand-header .brand-name {
+  font-family: var(--font-sans);
+  font-size: 0.85rem;
+  font-weight: 650;
+  letter-spacing: 0.18em;
+  color: var(--text);
+  white-space: nowrap;
+}
+
+.footer-summary {
+  max-width: 440px;
+  margin: 0;
+
+  font-family: var(--font-serif);
+  font-size: 1.15rem;
+  line-height: 1.55;
+  letter-spacing: -0.01em;
+
+  color: var(--text-muted);
+}
+
+
+/* ---------------------------------------------------------
+   FOOTER META
+   --------------------------------------------------------- */
+
+.footer-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 1.25rem;
+
+  margin-top: 2rem;
+}
+
+.spec-item {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+
+  color: var(--text-dim);
+}
+
+
+/* ---------------------------------------------------------
+   NAVIGATION
+   --------------------------------------------------------- */
+
+.footer-col-title {
+  margin-bottom: 1.25rem;
+
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  color: var(--text-dim);
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+
+  margin: 0;
+  padding: 0;
+
+  list-style: none;
+}
+
+.footer-links a {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.7rem;
+
+  font-family: var(--font-sans);
+  font-size: 0.84rem;
+  font-weight: 500;
+
+  color: var(--text-muted);
+  text-decoration: none;
+
+  transition:
+    color 160ms ease,
+    transform 160ms ease;
+}
+
+.footer-links a:hover {
+  color: var(--text);
+  transform: translateX(3px);
+}
+
+.link-code {
+  min-width: 1.25rem;
+
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+
+  color: var(--text-dim);
+}
+
+
+/* ---------------------------------------------------------
+   BOTTOM BAR
+   --------------------------------------------------------- */
+
+.footer-bottom-bar {
+  border-top: 1px solid var(--border-subtle);
+}
+
+.footer-bottom-inner {
+  width: min(1180px, calc(100% - 3rem));
+  margin: 0 auto;
+  padding: 1.15rem 0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  line-height: 1.5;
+  letter-spacing: 0.04em;
+
+  color: var(--text-dim);
+}
+
+
+/* ---------------------------------------------------------
+   MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 760px) {
+
+  .site-footer {
+    margin-top: 5rem;
+  }
+
+  .footer-container {
+    width: min(100% - 2rem, 600px);
+    padding: 3.5rem 0 3rem;
+
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .footer-summary {
+    font-size: 1.05rem;
+  }
+
+  .footer-bottom-inner {
+    width: min(100% - 2rem, 600px);
+
+    flex-direction: column;
+    align-items: flex-start;
+
+    gap: 0.45rem;
+  }
+}
+
+
+/* ---------------------------------------------------------
+   REDUCED MOTION
+   --------------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .footer-links a {
+    transition: none;
+  }
+}
+</style>
+
+</body>
+</html>

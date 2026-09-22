@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}About — MADE FOR NOTHING{% endblock %}
+{% block description %}What MADE FOR NOTHING is, why it exists, and what belongs here.{% endblock %}
+
+{% block container_class %}about-container{% endblock %}
+
+{% block content %}
+
+<article class="post-article about-article">
+
+  <header class="article-header">
+    <div class="meta-row">
+      <span class="type-badge">About</span>
+    </div>
+
+<h1 class="article-title">Made For Nothing</h1>
+
+<p class="article-deck">
+  A place for questions worth following.
+</p>
+
+  </header>
+
+  <div class="content-body">
+
+<p class="lead">
+  There are things we encounter that are too interesting to forget,
+  questions that are too difficult to answer quickly, and ideas that
+  become more interesting the longer we stay with them.
+</p>
+
+<p>
+  <em>MADE FOR NOTHING</em> is a place for those things.
+</p>
+
+<p>
+  It is a personal archive of research, writing, experiments, books,
+  projects, observations, and unfinished thoughts. Not everything here
+  is meant to become a conclusion. Some things are simply worth
+  investigating.
+</p>
+
+
+<h2>Why It Exists</h2>
+
+<p>
+  The internet contains an extraordinary amount of information, but
+  information is not the same as understanding.
+</p>
+
+<p>
+  We are surrounded by summaries, opinions, explanations, and answers
+  designed to be consumed quickly. There is value in those things. But
+  there is also value in slowing down.
+</p>
+
+<p>
+  To ask why something is true.
+  <br>
+  To look beneath the obvious explanation.
+  <br>
+  To follow a question further than necessary.
+  <br>
+  To change your mind.
+  <br>
+  To discover that the original question was wrong.
+</p>
+
+<p>
+  This archive exists to make room for that process.
+</p>
+
+
+<h2>What Is Here</h2>
+
+<p>
+  The archive has no strict boundary.
+</p>
+
+<p>
+  <strong>Writing</strong> is where ideas are developed and put into words.
+</p>
+
+<p>
+  <strong>Research</strong> is where questions are investigated without
+  assuming that the first answer is the right one.
+</p>
+
+<p>
+  <strong>Experiments</strong> are attempts to find out what happens when
+  an idea meets reality.
+</p>
+
+<p>
+  <strong>Projects</strong> are things made along the way.
+</p>
+
+<p>
+  <strong>Books</strong> are records of things worth reading and ideas
+  worth carrying forward.
+</p>
+
+<p>
+  The categories are only a way of organizing the archive. The boundaries
+  between them are intentionally loose.
+</p>
+
+
+<h2>On Curiosity</h2>
+
+<p>
+  Curiosity is often treated as the beginning of learning. I think it is
+  also a reason to continue.
+</p>
+
+<p>
+  A question does not need to have immediate practical value to deserve
+  attention. Understanding how something works, why something happened,
+  or whether something everyone believes is actually true can be enough.
+</p>
+
+<p>
+  Sometimes the result is useful. Sometimes it becomes a project.
+  Sometimes it becomes an essay. Sometimes it leads nowhere.
+</p>
+
+<p>
+  All four are acceptable outcomes.
+</p>
+
+
+<h2>On Being Wrong</h2>
+
+<p>
+  An archive of thinking should contain mistakes.
+</p>
+
+<p>
+  Ideas change while they are being investigated. An early assumption may
+  turn out to be false. An experiment may produce an unexpected result.
+  Something that once seemed obvious may become uncertain.
+</p>
+
+<p>
+  That is not necessarily a failure of the process. It is often evidence
+  that the process happened.
+</p>
+
+<p>
+  So this is not a collection of final truths. It is a record of what was
+  understood at different points in time.
+</p>
+
+
+<h2>Made For Nothing</h2>
+
+<p>
+  The name comes from a simple idea:
+</p>
+
+<p>
+  Not everything needs to be made <em>for</em> something.
+</p>
+
+<p>
+  Not every piece of writing needs an audience. Not every question needs
+  to become a product. Not every experiment needs to succeed. Not every
+  hour spent learning needs to produce something measurable.
+</p>
+
+<p>
+  Some things can simply be made because they were worth making.
+</p>
+
+<p>
+  Some things can simply be studied because they were worth understanding.
+</p>
+
+
+<h2>Begin Anywhere</h2>
+
+<p>
+  There is no required order.
+</p>
+
+<p>
+  Start with a question. Find a piece of writing. Open a research note.
+  Read about a book. Follow something that looks interesting.
+</p>
+
+<p>
+  The archive is meant to be explored rather than completed.
+</p>
+
+<p>
+  <em>There is always something else worth wondering about.</em>
+</p>
+
+  </div>
+</article>
+
+<style>
+.about-container {
+  width: min(1280px, calc(100% - 3rem));
+  margin: 0 auto;
+}
+
+.about-article {
+  width: 100%;
+}
+
+
+/* Header */
+
+.about-article .article-header {
+  width: 100%;
+  margin-bottom: 3.5rem;
+}
+
+.about-article .article-title {
+  margin-bottom: 1rem;
+
+  font-family: var(--font-serif);
+  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: -0.035em;
+}
+
+.about-article .article-deck {
+  max-width: 800px;
+  margin: 0;
+
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+
+/* Full-width content */
+
+.about-article .content-body {
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+
+/* Let paragraphs use the same horizontal space */
+
+.about-article .content-body p {
+  width: 100%;
+  max-width: none;
+
+  margin-top: 0;
+  margin-bottom: 1.35rem;
+
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1.7;
+
+  color: var(--text);
+}
+
+.about-article .content-body .lead {
+  width: 100%;
+  max-width: none;
+
+  margin-bottom: 2rem;
+
+  font-size: 1.3rem;
+  line-height: 1.6;
+}
+
+
+/* Section headings */
+
+.about-article .content-body h2 {
+  width: 100%;
+  max-width: none;
+
+  margin-top: 4rem;
+  margin-bottom: 1.35rem;
+  padding-top: 1rem;
+
+  border-top: 1px solid var(--border);
+
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+
+  color: var(--text-muted);
+}
+
+
+/* Lists */
+
+.about-article .content-body ul {
+  width: 100%;
+  max-width: none;
+
+  margin: 0 0 1.8rem;
+  padding-left: 1.4rem;
+}
+
+.about-article .content-body li {
+  margin-bottom: 0.7rem;
+
+  font-family: var(--font-serif);
+  font-size: 1.1rem;
+  line-height: 1.65;
+}
+
+
+/* Tablet */
+
+@media (max-width: 900px) {
+  .about-container {
+    width: min(100% - 2.5rem, 760px);
+  }
+}
+
+
+/* Mobile */
+
+@media (max-width: 600px) {
+  .about-container {
+    width: calc(100% - 2rem);
+  }
+
+  .about-article .article-title {
+    font-size: 3rem;
+  }
+
+  .about-article .article-deck {
+    font-size: 1.15rem;
+  }
+
+  .about-article .content-body p,
+  .about-article .content-body li {
+    font-size: 1.05rem;
+  }
+
+  .about-article .content-body h2 {
+    margin-top: 3rem;
+  }
+}
+</style>
+
+
+{% endblock %}
