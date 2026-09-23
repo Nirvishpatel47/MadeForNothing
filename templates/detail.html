@@ -40,45 +40,33 @@
 
   {% if toc_content %}
   <aside class="detail-toc" aria-label="Table of contents">
-
     <div class="detail-toc-inner">
-
       <div class="detail-toc-label">
         Contents
       </div>
-
       <div class="detail-toc-tree">
         {{ toc_content|safe }}
       </div>
-
     </div>
-
   </aside>
   {% endif %}
-
 
   <article class="detail-article">
 
     <!-- ================================================================
          BACK NAVIGATION
          ================================================================ -->
-
     <nav class="detail-back" aria-label="Breadcrumb">
-
       <a href="/{{ post.type }}" class="detail-back-link">
         <span aria-hidden="true">&larr;</span>
         <span>All {{ post.type|capitalize }}</span>
       </a>
-
     </nav>
-
 
     <!-- ================================================================
          ARTICLE HEADER
          ================================================================ -->
-
     <header class="detail-header">
-
       <div class="detail-meta">
 
         <a href="/{{ post.type }}" class="detail-type">
@@ -87,7 +75,6 @@
 
         {% if post.published_at %}
           <span class="detail-meta-separator">&bull;</span>
-
           <time datetime="{{ post.published_at.strftime('%Y-%m-%d') }}">
             {{ post.published_at.strftime('%B %d, %Y') }}
           </time>
@@ -95,19 +82,15 @@
 
         {% if reading_time %}
           <span class="detail-meta-separator">&bull;</span>
-
           <span>
             {{ reading_time }} min read
           </span>
         {% endif %}
-
       </div>
-
 
       <h1 class="detail-title">
         {{ post.title }}
       </h1>
-
 
       {% if post.excerpt %}
       <p class="detail-deck">
@@ -115,164 +98,161 @@
       </p>
       {% endif %}
 
-
       {% if post.tags %}
       <div class="detail-tags">
-
         {% for tag in post.tags %}
           <span class="detail-tag">
             #{{ tag }}
           </span>
         {% endfor %}
-
       </div>
       {% endif %}
-
     </header>
 
 
     <!-- ================================================================
-         ARTICLE BODY
+         ARTICLE BODY (RENDERED VS RAW)
          ================================================================ -->
-
-    <div class="detail-body">
+    
+    <!-- Rendered HTML View -->
+    <div class="detail-body" id="html-view">
       {{ rendered_content|safe }}
+    </div>
+
+    <!-- Premium Raw Markdown View (Hidden by default) -->
+    <div class="detail-body" id="md-view" style="display: none;">
+      <div class="md-editor-container">
+        <!-- MacOS style editor chrome -->
+        <div class="md-editor-chrome">
+          <div class="md-chrome-dots">
+            <span class="md-dot close"></span>
+            <span class="md-dot min"></span>
+            <span class="md-dot max"></span>
+          </div>
+          <div class="md-chrome-title">{{ post.slug }}.md</div>
+        </div>
+        <!-- Editor body -->
+        <pre class="md-raw-content"><code>{{ post.content_markdown }}</code></pre>
+      </div>
     </div>
 
 
     <!-- ================================================================
          REFERENCES
          ================================================================ -->
-
     {% if post.external_links %}
-
       {% set valid_links = post.external_links
         |selectattr("url")
         |list
       %}
-
       {% if valid_links %}
-
-      <section class="detail-references" aria-label="References and External Links">
-
+      <section class="detail-references" aria-label="References and External Links" id="references-section">
         <div class="detail-section-label">
           References &amp; External Links
         </div>
-
         <ol class="detail-reference-list">
-
           {% for link in valid_links %}
-
           <li class="detail-reference-item">
-
-            <a
-              href="{{ link.url }}"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
+            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
               {{ link.title or link.url }}
               <span class="detail-external-arrow" aria-hidden="true">↗</span>
             </a>
-
           </li>
-
           {% endfor %}
-
         </ol>
-
       </section>
-
       {% endif %}
-
     {% endif %}
 
 
     <!-- ================================================================
          CONTINUE READING
          ================================================================ -->
-
     {% if continue_reading %}
-
-    <section class="detail-continue" aria-label="Continue Reading">
-
+    <section class="detail-continue" aria-label="Continue Reading" id="continue-section">
       <div class="detail-section-heading">
-
         <span class="detail-section-label">
           Continue Reading
         </span>
-
       </div>
-
-
       <div class="detail-continue-grid">
-
         {% for item in continue_reading %}
-
-        <a
-          class="detail-continue-item"
-          href="/{{ item.type }}/{{ item.slug }}"
-        >
-
-          <div>
-
+        <a class="detail-continue-item" href="/{{ item.type }}/{{ item.slug }}" style="min-width: 0; max-width: 100%; overflow: hidden;">
+          <div style="min-width: 0; max-width: 100%; overflow: hidden;">
             <div class="detail-continue-type">
               {{ item.type }}
             </div>
-
-            <h3 class="detail-continue-title">
+            <h3 class="detail-continue-title" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
               {{ item.title }}
             </h3>
-
             {% if item.excerpt %}
-            <p class="detail-continue-excerpt">
+            <p class="detail-continue-excerpt" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%;">
               {{ item.excerpt }}
             </p>
             {% endif %}
-
           </div>
-
-
           {% if item.tags %}
-
           <div class="detail-continue-tags">
-
             {% for tag in item.tags[:2] %}
-
               <span class="detail-tag">
                 #{{ tag }}
               </span>
-
             {% endfor %}
-
           </div>
-
           {% endif %}
-
         </a>
-
         {% endfor %}
-
       </div>
-
     </section>
-
     {% endif %}
 
   </article>
 
 </div>
 
+<!-- INLINE SCRIPT FOR TOGGLING VIEWS -->
+<script>
+  document.addEventListener("DOMContentLoaded", function() {
+    const toggleBtn = document.getElementById('md-toggle-btn');
+    const htmlView = document.getElementById('html-view');
+    const mdView = document.getElementById('md-view');
+    
+    // Optional UI elements to hide when viewing raw MD
+    const tocSidebar = document.querySelector('.detail-toc');
+    const referencesSection = document.getElementById('references-section');
+    const continueSection = document.getElementById('continue-section');
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        if (mdView.style.display === 'none') {
+          htmlView.style.display = 'none';
+          mdView.style.display = 'block';
+          toggleBtn.innerText = 'View Rendered HTML';
+          
+          if (tocSidebar) tocSidebar.style.opacity = '0.2';
+          if (referencesSection) referencesSection.style.display = 'none';
+          if (continueSection) continueSection.style.display = 'none';
+        } else {
+          htmlView.style.display = 'block';
+          mdView.style.display = 'none';
+          toggleBtn.innerText = 'View Raw .MD';
+          
+          if (tocSidebar) tocSidebar.style.opacity = '1';
+          if (referencesSection) referencesSection.style.display = 'block';
+          if (continueSection) continueSection.style.display = 'block';
+        }
+      });
+    }
+  });
+</script>
 
 <!-- ======================================================================
      DETAIL PAGE DESIGN
      ====================================================================== -->
-
 <style>
-
 /* ==========================================================================
    DETAIL PAGE — GLOBAL WIDTH
    ========================================================================== */
-
 .detail-page-container {
   width: 100%;
   max-width: 1040px !important;
@@ -282,16 +262,13 @@
   padding-right: 1.5rem;
 }
 
-
 /* ==========================================================================
    MAIN LAYOUT
    ========================================================================== */
-
 .detail-layout {
   width: 100%;
   display: block;
 }
-
 .detail-layout.has-toc {
   display: grid;
   grid-template-columns: 190px minmax(0, 1fr);
@@ -299,31 +276,12 @@
   align-items: start;
 }
 
-
 /* ==========================================================================
-   ARTICLE
+   ARTICLE & TOC
    ========================================================================== */
-
-.detail-article {
-  width: 100%;
-  min-width: 0;
-}
-
-
-/* ==========================================================================
-   TABLE OF CONTENTS
-   ========================================================================== */
-
-.detail-toc {
-  width: 100%;
-}
-
-.detail-toc-inner {
-  position: sticky;
-  top: 5.5rem;
-  padding-top: 0.25rem;
-}
-
+.detail-article { width: 100%; min-width: 0; }
+.detail-toc { width: 100%; transition: opacity 0.2s ease; }
+.detail-toc-inner { position: sticky; top: 5.5rem; padding-top: 0.25rem; }
 .detail-toc-label {
   font-family: var(--font-mono);
   font-size: 0.68rem;
@@ -335,824 +293,220 @@
   margin-bottom: 0.75rem;
   border-bottom: 1px solid var(--border);
 }
+.detail-toc-tree { font-family: var(--font-sans); font-size: 0.78rem; line-height: 1.5; }
+.detail-toc-tree ul { list-style: none; margin: 0; padding: 0; }
+.detail-toc-tree ul ul { margin-top: 0.3rem; padding-left: 0.8rem; }
+.detail-toc-tree li { margin-bottom: 0.35rem; }
+.detail-toc-tree a { color: var(--text-muted); text-decoration: none; transition: color 0.15s ease; }
+.detail-toc-tree a:hover { color: var(--text); }
 
-.detail-toc-tree {
-  font-family: var(--font-sans);
-  font-size: 0.78rem;
-  line-height: 1.5;
+.detail-toc-tree li { 
+  margin-bottom: 0.75rem; 
 }
-
-.detail-toc-tree ul {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.detail-toc-tree ul ul {
-  margin-top: 0.3rem;
-  padding-left: 0.8rem;
-}
-
-.detail-toc-tree li {
-  margin-bottom: 0.35rem;
-}
-
-.detail-toc-tree a {
-  color: var(--text-muted);
-  text-decoration: none;
+.detail-toc-tree a { 
+  color: var(--text-muted); 
+  text-decoration: none; 
   transition: color 0.15s ease;
+  font-size: 0.88rem;
+  font-weight: 500;
+  display: inline-block;
 }
-
-.detail-toc-tree a:hover {
-  color: var(--text);
+.detail-toc-tree a::before {
+  content: "# ";
+  color: var(--text-dim);
+  font-weight: 600;
+  margin-right: 0.35rem;
+  opacity: 0.7;
 }
-
+.detail-toc-tree a:hover { 
+  color: var(--text); 
+}
+.detail-toc-tree a:hover::before { 
+  color: var(--accent-brand); 
+}
 
 /* ==========================================================================
-   BACK NAVIGATION
+   BACK NAVIGATION & HEADER
    ========================================================================== */
-
-.detail-back {
-  margin: 0 0 2.5rem;
-}
-
+.detail-back { margin: 0 0 2.5rem; }
 .detail-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--text-dim);
-
-  text-decoration: none;
-
-  transition:
-    color 0.15s ease,
-    transform 0.15s ease;
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-dim); text-decoration: none;
+  transition: color 0.15s ease, transform 0.15s ease;
 }
+.detail-back-link:hover { color: var(--text); transform: translateX(-2px); }
 
-.detail-back-link:hover {
-  color: var(--text);
-  transform: translateX(-2px);
-}
-
-
-/* ==========================================================================
-   ARTICLE HEADER
-   ========================================================================== */
-
-.detail-header {
-  width: 100%;
-  margin: 0 0 3.25rem;
-  padding: 0 0 2.5rem;
-  border-bottom: 1px solid var(--border);
-}
-
-
-/* --------------------------------------------------------------------------
-   META
-   -------------------------------------------------------------------------- */
-
-.detail-meta {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-
-  margin-bottom: 1.1rem;
-
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  line-height: 1.4;
-  color: var(--text-dim);
-}
-
-.detail-meta-separator {
-  color: var(--border-hover);
-}
-
-
-/* --------------------------------------------------------------------------
-   TYPE
-   -------------------------------------------------------------------------- */
+.detail-header { width: 100%; margin: 0 0 3.25rem; padding: 0 0 2.5rem; border-bottom: 1px solid var(--border); }
+.detail-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 0.55rem; margin-bottom: 1.1rem; font-family: var(--font-mono); font-size: 0.72rem; line-height: 1.4; color: var(--text-dim); }
+.detail-meta-separator { color: var(--border-hover); }
 
 .detail-type {
-  display: inline-flex;
-  align-items: center;
-
-  padding: 0.24rem 0.5rem;
-
-  border: 1px solid var(--border);
-  border-radius: 3px;
-
-  background: var(--bg-subtle);
-
-  color: var(--text-muted);
-
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-
-  text-decoration: none;
-
-  transition:
-    border-color 0.15s ease,
-    color 0.15s ease,
-    background-color 0.15s ease;
+  display: inline-flex; align-items: center; padding: 0.24rem 0.5rem;
+  border: 1px solid var(--border); border-radius: 3px; background: var(--bg-subtle); color: var(--text-muted);
+  font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;
+  text-decoration: none; transition: border-color 0.15s ease, color 0.15s ease, background-color 0.15s ease;
 }
-
-.detail-type:hover {
-  color: var(--text);
-  border-color: var(--border-hover);
-  background: var(--bg-accent);
-}
-
-
-/* --------------------------------------------------------------------------
-   TITLE
-   -------------------------------------------------------------------------- */
+.detail-type:hover { color: var(--text); border-color: var(--border-hover); background: var(--bg-accent); }
 
 .detail-title {
   width: 100%;
-
   margin: 0 0 1.25rem;
-
   font-family: var(--font-serif);
-  font-size: clamp(3rem, 6vw, 5.8rem);
+  font-size: clamp(2.15rem, 4vw, 3.25rem);
   font-weight: 500;
-  line-height: 0.98;
-  letter-spacing: -0.045em;
-
+  line-height: 1.15;
+  letter-spacing: -0.025em;
   color: var(--text);
-
   text-wrap: balance;
 }
+.detail-deck { width: 100%; margin: 0 0 1.5rem; padding: 1.2rem 1.35rem; border-left: 2px solid var(--accent-brand); background: var(--bg-subtle); color: var(--text-muted); font-family: var(--font-serif); font-size: 1.18rem; line-height: 1.65; font-style: italic; }
 
-
-/* --------------------------------------------------------------------------
-   DECK / EXCERPT
-   -------------------------------------------------------------------------- */
-
-.detail-deck {
-  width: 100%;
-
-  margin: 0 0 1.5rem;
-
-  padding: 1.2rem 1.35rem;
-
-  border-left: 2px solid var(--accent-brand);
-
-  background: var(--bg-subtle);
-
-  color: var(--text-muted);
-
-  font-family: var(--font-serif);
-  font-size: 1.18rem;
-  line-height: 1.65;
-  font-style: italic;
-}
-
-
-/* --------------------------------------------------------------------------
-   TAGS
-   -------------------------------------------------------------------------- */
-
-.detail-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-
-  margin-top: 1.25rem;
-}
-
-.detail-tag {
-  display: inline-block;
-
-  padding: 0.2rem 0.48rem;
-
-  border: 1px solid var(--tag-border);
-  border-radius: 3px;
-
-  background: var(--tag-bg);
-
-  color: var(--tag-text);
-
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  line-height: 1.35;
-}
-
+.detail-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 1.25rem; }
+.detail-tag { display: inline-block; padding: 0.2rem 0.48rem; border: 1px solid var(--tag-border); border-radius: 3px; background: var(--tag-bg); color: var(--tag-text); font-family: var(--font-mono); font-size: 0.68rem; line-height: 1.35; }
 
 /* ==========================================================================
    ARTICLE BODY
    ========================================================================== */
-
-.detail-body {
-  width: 100%;
-  max-width: none;
-
-  font-family: var(--font-serif);
-  font-size: 1.13rem;
-  line-height: 1.78;
-
-  color: var(--text);
-
-  overflow-wrap: break-word;
-  word-break: normal;
-}
-
-
-/* --------------------------------------------------------------------------
-   PARAGRAPHS
-   -------------------------------------------------------------------------- */
-
-.detail-body p {
-  width: 100%;
-
-  margin: 0 0 1.55rem;
-}
-
-.detail-body > p:first-child {
-  font-size: 1.2rem;
-  line-height: 1.75;
-}
-
-
-/* --------------------------------------------------------------------------
-   HEADINGS
-   -------------------------------------------------------------------------- */
-
-.detail-body h1,
-.detail-body h2,
-.detail-body h3,
-.detail-body h4,
-.detail-body h5,
-.detail-body h6 {
-  color: var(--text);
-
-  font-family: var(--font-serif);
-
-  font-weight: 600;
-
-  line-height: 1.2;
-  letter-spacing: -0.025em;
-
-  margin-left: 0;
-  margin-right: 0;
-}
-
-.detail-body h1 {
-  font-size: 2.25rem;
-  margin-top: 3.5rem;
-  margin-bottom: 1rem;
-}
-
-.detail-body h2 {
-  font-size: 1.85rem;
-
-  margin-top: 3.25rem;
-  margin-bottom: 1rem;
-
-  padding-bottom: 0.55rem;
-
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.detail-body h3 {
-  font-size: 1.45rem;
-
-  margin-top: 2.5rem;
-  margin-bottom: 0.75rem;
-}
-
-.detail-body h4 {
-  font-size: 1.2rem;
-
-  margin-top: 2rem;
-  margin-bottom: 0.6rem;
-}
-
+.detail-body { width: 100%; max-width: none; font-family: var(--font-serif); font-size: 1.13rem; line-height: 1.78; color: var(--text); overflow-wrap: break-word; word-break: normal; }
+.detail-body p { width: 100%; margin: 0 0 1.55rem; }
+.detail-body > p:first-child { font-size: 1.2rem; line-height: 1.75; }
+.detail-body h1, .detail-body h2, .detail-body h3, .detail-body h4, .detail-body h5, .detail-body h6 { color: var(--text); font-family: var(--font-serif); font-weight: 600; line-height: 1.2; letter-spacing: -0.025em; margin-left: 0; margin-right: 0; }
+.detail-body h1 { font-size: 2.25rem; margin-top: 3.5rem; margin-bottom: 1rem; }
+.detail-body h2 { font-size: 1.85rem; margin-top: 3.25rem; margin-bottom: 1rem; padding-bottom: 0.55rem; border-bottom: 1px solid var(--border-subtle); }
+.detail-body h3 { font-size: 1.45rem; margin-top: 2.5rem; margin-bottom: 0.75rem; }
+.detail-body h4 { font-size: 1.2rem; margin-top: 2rem; margin-bottom: 0.6rem; }
+.detail-body a { color: var(--link); text-decoration-line: underline; text-decoration-color: var(--link-underline); text-decoration-thickness: 1px; text-underline-offset: 3px; transition: color 0.15s ease, text-decoration-color 0.15s ease; }
+.detail-body a:hover { color: var(--link-hover); text-decoration-color: var(--link-hover); }
+.detail-body ul, .detail-body ol { width: 100%; margin: 0 0 1.6rem; padding-left: 1.7rem; }
+.detail-body li { margin-bottom: 0.55rem; }
+.detail-body blockquote { width: 100%; margin: 2rem 0; padding: 0.25rem 0 0.25rem 1.5rem; border-left: 2px solid var(--text); background: transparent; color: var(--text-muted); font-family: var(--font-serif); font-size: 1.15rem; line-height: 1.7; font-style: italic; }
+.detail-body blockquote > :last-child { margin-bottom: 0; }
+.detail-body blockquote cite { display: block; margin-top: 0.7rem; color: var(--text-dim); font-family: var(--font-sans); font-size: 0.78rem; font-style: normal; font-weight: 600; }
+.detail-body blockquote cite::before { content: "— "; }
+.detail-body hr { width: 100%; border: 0; border-top: 1px solid var(--border); margin: 3rem 0; }
+.detail-body :not(pre) > code { font-family: var(--font-mono); font-size: 0.82em; padding: 0.12em 0.38em; border: 1px solid var(--code-inline-border); border-radius: 3px; background: var(--code-inline-bg); color: var(--code-inline-text); }
+.detail-body pre { width: 100%; margin: 2rem 0; padding: 1.25rem 1.4rem; border: 1px solid var(--code-border); border-radius: 5px; background: var(--code-bg); color: var(--code-text); overflow-x: auto; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.6; }
+.detail-body pre code { padding: 0; border: 0; background: transparent; color: inherit; font-size: inherit; }
 
 /* ==========================================================================
-   LINKS
+   TABLES & REFERENCES & CARDS
    ========================================================================== */
+.detail-body .table-wrap { width: 100%; margin: 2rem 0; overflow-x: auto; border: 1px solid var(--border); border-radius: 4px; }
+.detail-body table { width: 100%; border-collapse: collapse; font-family: var(--font-sans); font-size: 0.88rem; }
+.detail-body th, .detail-body td { padding: 0.75rem 0.9rem; border-bottom: 1px solid var(--border-subtle); text-align: left; }
+.detail-body th { background: var(--bg-subtle); color: var(--text-muted); font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
 
-.detail-body a {
-  color: var(--link);
+.detail-references { width: 100%; margin-top: 4.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.detail-section-label { margin-bottom: 1rem; color: var(--text-dim); font-family: var(--font-mono); font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; }
+.detail-reference-list { width: 100%; margin: 0; padding: 0; list-style: none; counter-reset: references; }
+.detail-reference-item { counter-increment: references; padding: 0.85rem 0; border-bottom: 1px solid var(--border-subtle); }
+.detail-reference-item:last-child { border-bottom: 0; }
+.detail-reference-item a { display: inline-flex; align-items: baseline; gap: 0.35rem; color: var(--text-muted); font-family: var(--font-serif); font-size: 1rem; text-decoration: none; transition: color 0.15s ease; }
+.detail-reference-item a::before { content: counter(references, decimal-leading-zero); flex-shrink: 0; color: var(--text-dim); font-family: var(--font-mono); font-size: 0.65rem; }
+.detail-reference-item a:hover { color: var(--accent-brand); }
+.detail-external-arrow { color: var(--text-dim); font-family: var(--font-sans); font-size: 0.8em; }
 
-  text-decoration-line: underline;
-  text-decoration-color: var(--link-underline);
-  text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-
-  transition:
-    color 0.15s ease,
-    text-decoration-color 0.15s ease;
-}
-
-.detail-body a:hover {
-  color: var(--link-hover);
-  text-decoration-color: var(--link-hover);
-}
-
+.detail-continue { width: 100%; margin-top: 4.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.detail-section-heading { margin-bottom: 1.25rem; }
+.detail-continue-grid { width: 100%; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; align-items: stretch; }
+.detail-continue-item { position: relative; display: flex; flex-direction: column; justify-content: space-between; height: 100%; min-height: 220px; min-width: 0; padding: 1.35rem; border: 1px solid var(--border); border-radius: 6px; background: var(--bg-surface); color: inherit; text-decoration: none; box-shadow: var(--card-shadow); transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease; overflow: hidden; }
+.detail-continue-item > div:first-child { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
+.detail-continue-item:hover { border-color: var(--border-hover); background: var(--bg-subtle); transform: translateY(-2px); box-shadow: var(--card-shadow-hover); }
+.detail-continue-type { margin-bottom: 0.65rem; color: var(--text-dim); font-family: var(--font-mono); font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; white-space: nowrap; align-self: flex-start; }
+.detail-continue-title { margin: 0 0 0.55rem; color: var(--text); font-family: var(--font-serif); font-size: 1.2rem; font-weight: 600; line-height: 1.3; letter-spacing: -0.015em; min-width: 0; overflow-wrap: anywhere; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
+.detail-continue-excerpt { margin: 0; color: var(--text-muted); font-family: var(--font-serif); font-size: 0.9rem; line-height: 1.55; min-width: 0; overflow-wrap: anywhere; word-break: break-word; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; text-overflow: ellipsis; }
+.detail-continue-tags { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: auto; padding-top: 0.85rem; }
 
 /* ==========================================================================
-   LISTS
+   MOBILE & DARK MODE
    ========================================================================== */
-
-.detail-body ul,
-.detail-body ol {
-  width: 100%;
-
-  margin: 0 0 1.6rem;
-  padding-left: 1.7rem;
-}
-
-.detail-body li {
-  margin-bottom: 0.55rem;
-}
-
-
-/* ==========================================================================
-   BLOCKQUOTES
-   ========================================================================== */
-
-.detail-body blockquote {
-  width: 100%;
-
-  margin: 2rem 0;
-
-  padding: 0.25rem 0 0.25rem 1.5rem;
-
-  border-left: 2px solid var(--text);
-
-  background: transparent;
-
-  color: var(--text-muted);
-
-  font-family: var(--font-serif);
-  font-size: 1.15rem;
-  line-height: 1.7;
-
-  font-style: italic;
-}
-
-.detail-body blockquote > :last-child {
-  margin-bottom: 0;
-}
-
-.detail-body blockquote cite {
-  display: block;
-
-  margin-top: 0.7rem;
-
-  color: var(--text-dim);
-
-  font-family: var(--font-sans);
-  font-size: 0.78rem;
-  font-style: normal;
-  font-weight: 600;
-}
-
-.detail-body blockquote cite::before {
-  content: "— ";
-}
-
-
-/* ==========================================================================
-   HORIZONTAL RULE
-   ========================================================================== */
-
-.detail-body hr {
-  width: 100%;
-
-  border: 0;
-  border-top: 1px solid var(--border);
-
-  margin: 3rem 0;
-}
-
-
-/* ==========================================================================
-   INLINE CODE
-   ========================================================================== */
-
-.detail-body :not(pre) > code {
-  font-family: var(--font-mono);
-  font-size: 0.82em;
-
-  padding: 0.12em 0.38em;
-
-  border: 1px solid var(--code-inline-border);
-  border-radius: 3px;
-
-  background: var(--code-inline-bg);
-
-  color: var(--code-inline-text);
-}
-
-
-/* ==========================================================================
-   CODE BLOCKS
-   ========================================================================== */
-
-.detail-body pre {
-  width: 100%;
-
-  margin: 2rem 0;
-
-  padding: 1.25rem 1.4rem;
-
-  border: 1px solid var(--code-border);
-  border-radius: 5px;
-
-  background: var(--code-bg);
-  color: var(--code-text);
-
-  overflow-x: auto;
-
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-  line-height: 1.6;
-}
-
-.detail-body pre code {
-  padding: 0;
-
-  border: 0;
-
-  background: transparent;
-
-  color: inherit;
-
-  font-size: inherit;
-}
-
-
-/* ==========================================================================
-   TABLES
-   ========================================================================== */
-
-.detail-body .table-wrap {
-  width: 100%;
-
-  margin: 2rem 0;
-
-  overflow-x: auto;
-
-  border: 1px solid var(--border);
-  border-radius: 4px;
-}
-
-.detail-body table {
-  width: 100%;
-
-  border-collapse: collapse;
-
-  font-family: var(--font-sans);
-  font-size: 0.88rem;
-}
-
-.detail-body th,
-.detail-body td {
-  padding: 0.75rem 0.9rem;
-
-  border-bottom: 1px solid var(--border-subtle);
-
-  text-align: left;
-}
-
-.detail-body th {
-  background: var(--bg-subtle);
-
-  color: var(--text-muted);
-
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-
-/* ==========================================================================
-   REFERENCES
-   ========================================================================== */
-
-.detail-references {
-  width: 100%;
-
-  margin-top: 4.5rem;
-  padding-top: 1.5rem;
-
-  border-top: 1px solid var(--border);
-}
-
-.detail-section-label {
-  margin-bottom: 1rem;
-
-  color: var(--text-dim);
-
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  font-weight: 600;
-
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.detail-reference-list {
-  width: 100%;
-
-  margin: 0;
-  padding: 0;
-
-  list-style: none;
-
-  counter-reset: references;
-}
-
-.detail-reference-item {
-  counter-increment: references;
-
-  padding: 0.85rem 0;
-
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.detail-reference-item:last-child {
-  border-bottom: 0;
-}
-
-.detail-reference-item a {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.35rem;
-
-  color: var(--text-muted);
-
-  font-family: var(--font-serif);
-  font-size: 1rem;
-
-  text-decoration: none;
-
-  transition: color 0.15s ease;
-}
-
-.detail-reference-item a::before {
-  content: counter(references, decimal-leading-zero);
-
-  flex-shrink: 0;
-
-  color: var(--text-dim);
-
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-}
-
-.detail-reference-item a:hover {
-  color: var(--accent-brand);
-}
-
-.detail-external-arrow {
-  color: var(--text-dim);
-
-  font-family: var(--font-sans);
-  font-size: 0.8em;
-}
-
-
-/* ==========================================================================
-   CONTINUE READING
-   ========================================================================== */
-
-.detail-continue {
-  width: 100%;
-
-  margin-top: 4.5rem;
-  padding-top: 1.5rem;
-
-  border-top: 1px solid var(--border);
-}
-
-.detail-section-heading {
-  margin-bottom: 1.25rem;
-}
-
-.detail-continue-grid {
-  width: 100%;
-
-  display: grid;
-
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-
-  gap: 1.25rem;
-}
-
-.detail-continue-item {
-  position: relative;
-
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-
-  min-height: 180px;
-
-  padding: 1.3rem;
-
-  border: 1px solid var(--border);
-
-  background: transparent;
-
-  color: inherit;
-
-  text-decoration: none;
-
-  transition:
-    border-color 0.18s ease,
-    background-color 0.18s ease,
-    transform 0.18s ease;
-}
-
-.detail-continue-item:hover {
-  border-color: var(--border-hover);
-
-  background: var(--bg-subtle);
-
-  transform: translateY(-2px);
-}
-
-.detail-continue-type {
-  margin-bottom: 0.65rem;
-
-  color: var(--text-dim);
-
-  font-family: var(--font-mono);
-  font-size: 0.65rem;
-  font-weight: 600;
-
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-
-.detail-continue-title {
-  margin: 0 0 0.55rem;
-
-  color: var(--text);
-
-  font-family: var(--font-serif);
-  font-size: 1.25rem;
-  font-weight: 600;
-  line-height: 1.25;
-  letter-spacing: -0.015em;
-}
-
-.detail-continue-excerpt {
-  margin: 0;
-
-  color: var(--text-muted);
-
-  font-family: var(--font-serif);
-  font-size: 0.9rem;
-  line-height: 1.55;
-}
-
-.detail-continue-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-
-  margin-top: 1.2rem;
-}
-
-
-/* ==========================================================================
-   MOBILE
-   ========================================================================== */
-
 @media (max-width: 960px) {
-
-  .detail-page-container {
-    max-width: 100% !important;
-  }
-
-  .detail-layout.has-toc {
-    display: block;
-  }
-
-  .detail-toc {
-    display: none;
-  }
-
-  .detail-title {
-    font-size: clamp(2.8rem, 8vw, 4.8rem);
-  }
-
-  .detail-body {
-    font-size: 1.1rem;
-  }
-
-  .detail-continue-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-
+  .detail-page-container { max-width: 100% !important; }
+  .detail-layout.has-toc { display: block; }
+  .detail-toc { display: none; }
+  .detail-title { font-size: clamp(2.8rem, 8vw, 4.8rem); }
+  .detail-body { font-size: 1.1rem; }
+  .detail-continue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-
-
 @media (max-width: 640px) {
-
-  .detail-page-container {
-    padding-left: 1rem;
-    padding-right: 1rem;
-  }
-
-  .detail-back {
-    margin-bottom: 2rem;
-  }
-
-  .detail-header {
-    margin-bottom: 2.5rem;
-    padding-bottom: 2rem;
-  }
-
-  .detail-title {
-    font-size: clamp(2.55rem, 13vw, 4rem);
-    line-height: 1;
-  }
-
-  .detail-deck {
-    padding: 1rem;
-
-    font-size: 1.05rem;
-  }
-
-  .detail-body {
-    font-size: 1.05rem;
-    line-height: 1.75;
-  }
-
-  .detail-body > p:first-child {
-    font-size: 1.1rem;
-  }
-
-  .detail-body h2 {
-    font-size: 1.55rem;
-    margin-top: 2.5rem;
-  }
-
-  .detail-body h3 {
-    font-size: 1.3rem;
-  }
-
-  .detail-continue-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .detail-continue-item {
-    min-height: 0;
-  }
-
+  .detail-page-container { padding-left: 1rem; padding-right: 1rem; }
+  .detail-back { margin-bottom: 2rem; }
+  .detail-header { margin-bottom: 2.5rem; padding-bottom: 2rem; }
+  .detail-title { font-size: clamp(2.55rem, 13vw, 4rem); line-height: 1; }
+  .detail-deck { padding: 1rem; font-size: 1.05rem; }
+  .detail-body { font-size: 1.05rem; line-height: 1.75; }
+  .detail-body > p:first-child { font-size: 1.1rem; }
+  .detail-body h2 { font-size: 1.55rem; margin-top: 2.5rem; }
+  .detail-body h3 { font-size: 1.3rem; }
+  .detail-continue-grid { grid-template-columns: minmax(0, 1fr); }
+  .detail-continue-item { min-height: 200px; }
 }
-
-
-/* ==========================================================================
-   REDUCED MOTION
-   ========================================================================== */
-
 @media (prefers-reduced-motion: reduce) {
-
-  .detail-back-link,
-  .detail-type,
-  .detail-body a,
-  .detail-continue-item {
-    transition: none;
-  }
-
+  .detail-back-link, .detail-type, .detail-body a, .detail-continue-item { transition: none; }
 }
-
+[data-theme="dark"] .detail-deck { background: var(--bg-subtle); }
+[data-theme="dark"] .detail-type, [data-theme="dark"] .detail-tag { background: var(--bg-subtle); }
+[data-theme="dark"] .detail-continue-item:hover { background: var(--bg-subtle); }
 
 /* ==========================================================================
-   DARK MODE REFINEMENT
+   PREMIUM RAW MARKDOWN VIEWER
    ========================================================================== */
-
-[data-theme="dark"] .detail-deck {
-  background: var(--bg-subtle);
+.md-editor-container {
+  margin: 2rem 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: var(--code-bg);
+  border: 1px solid var(--border);
+  box-shadow: var(--card-shadow-hover);
 }
 
-[data-theme="dark"] .detail-type,
-[data-theme="dark"] .detail-tag {
-  background: var(--bg-subtle);
+.md-editor-chrome {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background-color: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
 }
 
-[data-theme="dark"] .detail-continue-item:hover {
-  background: var(--bg-subtle);
+.md-chrome-dots {
+  display: flex;
+  gap: 0.4rem;
 }
 
+.md-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  opacity: 0.8;
+}
+.md-dot.close { background-color: #ff5f56; }
+.md-dot.min { background-color: #ffbd2e; }
+.md-dot.max { background-color: #27c93f; }
+
+.md-chrome-title {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.md-raw-content {
+  margin: 0 !important;
+  padding: 1.5rem !important;
+  background: transparent !important;
+  border: none !important;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: var(--font-mono);
+  font-size: 0.85rem !important;
+  line-height: 1.7 !important;
+  color: var(--code-text);
+}
+
+.md-raw-content code {
+  color: inherit;
+  font-family: inherit;
+}
 </style>
-
 {% endblock %}

@@ -83,6 +83,9 @@ def render_markdown_with_toc(text: str):
     if not text:
         return "", ""
 
+    text = re.sub(r'\[span_\d+\]\(start_span\)', '<span class="inline-term">', text)
+    text = re.sub(r'\[span_\d+\]\(end_span\)', '</span>', text)
+
     md = markdown.Markdown(
         extensions=[
             'extra',
@@ -91,7 +94,8 @@ def render_markdown_with_toc(text: str):
             'codehilite',
             'toc',
             'sane_lists',
-            'nl2br'
+            'nl2br',
+            'attr_list'
         ],
         extension_configs={
             'codehilite': {
@@ -101,7 +105,7 @@ def render_markdown_with_toc(text: str):
             },
             'toc': {
                 'title': 'Table of Contents',
-                'toc_depth': '2-4'
+                'toc_depth': '1-1'
             }
         },
         output_format='html5'

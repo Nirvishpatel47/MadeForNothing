@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 
 {% block title %}{{ type_title }} &mdash; MADE FOR NOTHING{% endblock %}
+
 {% block description %}{{ type_description }}{% endblock %}
 
 {% block content %}
@@ -18,34 +19,45 @@
 
 <section>
   {% if posts %}
-    <div class="archive-entries-stream">
+    <div class="archive-card-grid">
       {% for post in posts %}
-        <article class="archive-entry-block">
-          <div class="meta-row">
-            {% if post.published_at %}
-              <time datetime="{{ post.published_at.strftime('%Y-%m-%d') }}">
-                {{ post.published_at.strftime('%B %d, %Y') }}
-              </time>
-            {% endif %}
-            {% if post.reading_time %}
-              <span class="meta-dot">&bull;</span>
-              <span>{{ post.reading_time }} min read</span>
-            {% endif %}
+        <article class="archive-card" style="min-width: 0; max-width: 100%; overflow: hidden;">
+          
+          <div style="min-width: 0; max-width: 100%; overflow: hidden;">
+            <div class="meta-row" style="margin-bottom: 0.75rem;">
+              {% if post.published_at %}
+                <time datetime="{{ post.published_at.strftime('%Y-%m-%d') }}">
+                  {{ post.published_at.strftime('%b %d, %Y') }}
+                </time>
+              {% endif %}
+              {% if post.reading_time %}
+                <span class="meta-dot">&bull;</span>
+                <span>{{ post.reading_time }} min read</span>
+              {% endif %}
+            </div>
+
+            <h2 class="archive-card-title" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
+              <a href="/{{ post.type }}/{{ post.slug }}">
+                {{ post.title }}
+              </a>
+            </h2>
+
+            <p class="archive-card-excerpt" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%;">{{ post.excerpt }}</p>
           </div>
 
-          <h2 class="archive-entry-title">
-            <a href="/{{ post.type }}/{{ post.slug }}">{{ post.title }}</a>
-          </h2>
+          <div class="archive-card-bottom">
+            {% if post.tags %}
+              <div class="tag-list" style="margin: 0;">
+                {% for tag in post.tags[:2] %}
+                  <span class="tag">#{{ tag }}</span>
+                {% endfor %}
+              </div>
+            {% endif %}
+            <a href="/{{ post.type }}/{{ post.slug }}" class="editorial-link" style="margin-left: auto;">
+              Read &rarr;
+            </a>
+          </div>
 
-          <p class="archive-entry-summary">{{ post.excerpt }}</p>
-
-          {% if post.tags %}
-            <div class="tag-list">
-              {% for tag in post.tags %}
-                <span class="tag">#{{ tag }}</span>
-              {% endfor %}
-            </div>
-          {% endif %}
         </article>
       {% endfor %}
     </div>

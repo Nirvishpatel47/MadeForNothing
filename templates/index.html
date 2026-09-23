@@ -64,9 +64,9 @@
 
       {% for post in selected_posts %}
 
-        <article class="curated-entry">
+        <article class="curated-entry" style="min-width: 0; max-width: 100%; overflow: hidden;">
 
-          <div>
+          <div style="min-width: 0; max-width: 100%; overflow: hidden;">
 
             <div class="entry-meta">
               <a href="/{{ post.type }}" class="meta-badge">
@@ -86,13 +86,13 @@
               {% endif %}
             </div>
 
-            <h3 class="curated-title">
+            <h3 class="curated-title" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
               <a href="/{{ post.type }}/{{ post.slug }}">
                 {{ post.title }}
               </a>
             </h3>
 
-            <p class="curated-desc">
+            <p class="curated-desc" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%;">
               {{ post.excerpt }}
             </p>
 

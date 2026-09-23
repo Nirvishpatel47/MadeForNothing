@@ -27,6 +27,8 @@ body {
   background-color: var(--admin-bg);
   color: var(--admin-text);
   line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
 .admin-layout {
@@ -166,7 +168,7 @@ body {
   background: var(--admin-surface);
   border: 1px solid var(--admin-border);
   border-radius: 4px;
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .admin-table {
@@ -191,6 +193,8 @@ body {
   padding: 0.85rem 1rem;
   border-bottom: 1px solid var(--admin-border);
   vertical-align: middle;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .admin-table tr:last-child td {

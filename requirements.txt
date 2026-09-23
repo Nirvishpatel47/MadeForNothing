@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+jinja2
+python-dotenv
+markdown
+bleach
+psycopg2-binary
