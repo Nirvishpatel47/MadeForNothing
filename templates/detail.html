@@ -177,20 +177,30 @@
       </div>
       <div class="detail-continue-grid">
         {% for item in continue_reading %}
-        <a class="detail-continue-item" href="/{{ item.type }}/{{ item.slug }}" style="min-width: 0; max-width: 100%; overflow: hidden;">
+        <a class="detail-continue-item"
+          href="/{{ item.type }}/{{ item.slug }}"
+          style="min-width: 0; max-width: 100%; overflow: hidden;">
+
           <div style="min-width: 0; max-width: 100%; overflow: hidden;">
+
             <div class="detail-continue-type">
               {{ item.type }}
             </div>
-            <h3 class="detail-continue-title" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
+
+            <h3 class="detail-continue-title"
+                style="word-break: normal; overflow-wrap: normal; hyphens: none; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
               {{ item.title }}
             </h3>
+
             {% if item.excerpt %}
-            <p class="detail-continue-excerpt" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%;">
+            <p class="detail-continue-excerpt"
+              style="word-break: normal; overflow-wrap: normal; hyphens: none; -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%;">
               {{ item.excerpt }}
             </p>
             {% endif %}
+
           </div>
+
           {% if item.tags %}
           <div class="detail-continue-tags">
             {% for tag in item.tags[:2] %}
@@ -200,6 +210,7 @@
             {% endfor %}
           </div>
           {% endif %}
+
         </a>
         {% endfor %}
       </div>

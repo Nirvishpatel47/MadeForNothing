@@ -31,10 +31,9 @@
   </h1>
 
   <p class="hero-summary">
-    MADE FOR NOTHING is an evolving record of things worth understanding —
-    ideas followed beyond the obvious answer, questions investigated from
-    first principles, experiments that failed, and discoveries that changed
-    the way something was seen.
+  MADE FOR NOTHING is a personal laboratory that evolves with time.
+  Here, we ask questions about everyday life—business, productivity, and science.
+  We try to solve problems, experiment with ideas, and record what we discover in the most useful way possible.
   </p>
 
   <div class="hero-rhythms">
@@ -86,13 +85,13 @@
               {% endif %}
             </div>
 
-            <h3 class="curated-title" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
+            <h3 class="curated-title" style="overflow-wrap: anywhere; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
               <a href="/{{ post.type }}/{{ post.slug }}">
                 {{ post.title }}
               </a>
             </h3>
 
-            <p class="curated-desc" style="word-break: break-all; overflow-wrap: anywhere; -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%;">
+            <p class="curated-desc" style="overflow-wrap: anywhere; -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%;">
               {{ post.excerpt }}
             </p>
 
@@ -229,5 +228,88 @@
 </section>
 
 {% endif %}
+<section class="page-section" aria-labelledby="about-heading">
+  <div class="section-top">
+    <p class="section-kicker">About</p>
+    <span class="section-note">A laboratory for curiosity</span>
+  </div>
 
+  <div class="about-copy">
+    <p>MADE FOR NOTHING is a personal laboratory that evolves with time.</p>
+    <p>
+      It exists to investigate questions about business, productivity,
+      science, and the ordinary things that surround us.
+    </p>
+    <p>
+      Some ideas are researched. Some are tested.
+      Some turn out to be wrong.
+      The point is not to be right the first time.
+      The point is to find out.
+    </p>
+  </div>
+</section>
+
+<section class="archive-closing" aria-label="Closing statement">
+  <p class="archive-closing-main">
+    The archive is unfinished by design.
+  </p>
+  <p class="archive-closing-sub">
+    Ideas change. Experiments fail.<br>
+    Questions lead to better questions.
+  </p>
+</section>
+
+<style>
+  /* About Section */
+.section-kicker {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin: 0;
+  color: var(--text);
+}
+
+.about-copy {
+  max-width: 65ch;
+  margin-top: 1.5rem;
+}
+
+.about-copy p {
+  font-family: var(--font-serif);
+  font-size: 1.12rem;
+  line-height: 1.65;
+  color: var(--text-muted);
+  margin-bottom: 1.25rem;
+}
+
+.about-copy p:last-child {
+  margin-bottom: 0;
+}
+/* Archive Closing Section */
+.archive-closing {
+  text-align: center;
+  margin: 4.5rem auto 3.5rem;
+  padding-top: 3.5rem;
+  max-width: 600px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.archive-closing-main {
+  font-family: var(--font-serif);
+  font-size: 1.25rem;
+  color: var(--text);
+  margin-bottom: 0.75rem;
+}
+
+.archive-closing-sub {
+  font-family: var(--font-serif);
+  font-size: 1.05rem;
+  color: var(--text-muted);
+  font-style: italic;
+  line-height: 1.6;
+  margin: 0;
+}
+</style>
 {% endblock %}

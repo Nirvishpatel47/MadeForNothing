@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from dotenv import load_dotenv
+from pydantic import BaseModel, EmailStr
 
 import db
 import markdown_utils
@@ -50,6 +51,8 @@ ARCHIVE_SECTIONS = [
     {"type": "books", "title": "Books", "desc": "Marginalia, reading notes, and conceptual summaries."}
 ]
 
+class NewsletterSignup(BaseModel):
+    email: EmailStr
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -238,20 +241,67 @@ def _render_404(request: Request):
     except Exception:
         recent_posts = []
 
-    return templates.TemplateResponse("404.html", {
-        "request": request,
-        "current_type": None,
-        "canonical_url": f"{BASE_URL}/404",
-        "base_url": BASE_URL,
-        "recent_posts": recent_posts,
-        "archive_sections": ARCHIVE_SECTIONS
-    }, status_code=404)
+    return templates.TemplateResponse(
+        request=request,
+        name="404.html",
+        context={
+            "request": request,
+            "current_type": None,
+            "canonical_url": f"{BASE_URL}/404",
+            "base_url": BASE_URL,
+            "recent_posts": recent_posts,
+            "archive_sections": ARCHIVE_SECTIONS,
+        },
+        status_code=404,
+    )
 
+@app.route("/robots.txt")
+def robots(request: Request):
+    return templates.TemplateResponse(
+        request=request,
+        name="robots.txt",
+        context={
+            "request": request,
+            "base_url": BASE_URL,
+        },
+        media_type="text/plain",
+    )
 
 @app.exception_handler(404)
 async def custom_404_handler(request: Request, exc: HTTPException):
     return _render_404(request)
 
+@app.post("/api/newsletter/subscribe")
+async def subscribe_newsletter(data: NewsletterSignup):
+    try:
+        result = db.add_subscriber(str(data.email))
+        
+        is_new = result.get("created", False)
+        return {
+            "success": True,
+            "status": "added" if is_new else "already_subscribed",
+            "message": (
+                f"Added {data.email}."
+                if is_new
+                else f"{data.email} is already on the list."
+            )
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except Exception as e:
+        logger.error(f"Newsletter subscription error: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to process subscription right now."
+        )
+    
+from fastapi.responses import FileResponse
+
+@app.get("/BingSiteAuth.xml")
+async def bing_verification():
+    return FileResponse("BingSiteAuth.xml", media_type="application/xml")
 
 if __name__ == "__main__":
     import uvicorn

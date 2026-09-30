@@ -2,6 +2,8 @@ import re
 import html
 import markdown
 
+import functools
+
 try:
     import bleach
     HAS_BLEACH = True
@@ -77,7 +79,7 @@ def sanitize_html(html_content: str) -> str:
     cleaned = re.sub(r'<a\b[^>]*>', link_replacer, cleaned)
     return cleaned
 
-
+@functools.lru_cache(maxsize=256)
 def render_markdown_with_toc(text: str):
     """Renders Markdown text into safe HTML and extracts the Table of Contents."""
     if not text:

@@ -46,9 +46,9 @@
   --card-shadow: 0 1px 0 rgba(25, 24, 22, 0.04);
   --card-shadow-hover: 0 8px 24px rgba(25, 24, 22, 0.06);
 
-  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  --font-serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  --font-mono: "IBM Plex Mono", "ui-monospace", Menlo, monospace;
+  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: "Source Serif 4", Georgia, serif;
+  --font-mono: "IBM Plex Mono", monospace;
 
   --site-max-width: 1080px;
   --reading-measure: 680px;
@@ -60,12 +60,12 @@
 }
 
 [data-theme="dark"] {
-  --bg: #11100e;
-  --bg-surface: #181714;
-  --bg-subtle: #1f1d1a;
-  --bg-accent: #27241f;
-  --text: #ece9e1;
-  --text-muted: #a8a297;
+  --bg: #161615; /* Slightly lighter, warmer charcoal */
+  --bg-surface: #1c1b1a;
+  --bg-subtle: #242220;
+  --bg-accent: #2c2a27;
+  --text: #dcd9d1; /* Lowered brightness from #ece9e1 */
+  --text-muted: #a39e93;
   --text-dim: #7a756b;
   --border: #2a2722;
   --border-subtle: #221f1b;
@@ -221,9 +221,9 @@ p, blockquote, figcaption, article, section {
 
 .brand-name {
   font-family: var(--font-sans);
-  font-size: 0.72rem;
+  font-size: clamp(0.82rem, 1.2vw, 0.98rem);
   font-weight: 600;
-  letter-spacing: 0.22em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   line-height: 1;
   color: var(--text);
@@ -1140,14 +1140,14 @@ p, blockquote, figcaption, article, section {
   line-height: 1.7;
 }
 
-.detail-body h1, .detail-body h2, .detail-body h3, .detail-body h4,
-.detail-body h5, .detail-body h6,
+.detail-body h1, .detail-body h2, .detail-body h3, .detail-body h4, .detail-body h5, .detail-body h6, 
 .content-body h1, .content-body h2, .content-body h3, .content-body h4 {
   color: var(--text);
   font-family: var(--font-serif);
-  font-weight: 550;
-  line-height: 1.22;
-  letter-spacing: -0.02em;
+  font-weight: 500; /* Reduced from 550/600 to prevent heavy ink-bleed on screens */
+  line-height: 1.25;
+  letter-spacing: 0; /* Removed the -0.02em negative spacing */
+  font-optical-sizing: auto;
 }
 
 .detail-body h1, .content-body h1 { font-size: 1.85rem; margin: 2.8rem 0 0.9rem; }
@@ -1589,7 +1589,7 @@ pre:hover .copy-code-btn { opacity: 1; }
 
 .footer-brand-header { margin-bottom: 1rem; }
 
-.footer-brand-header .brand-name {
+.footer-brand-header {
   font-size: 0.7rem;
   letter-spacing: 0.2em;
 }

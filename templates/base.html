@@ -8,6 +8,13 @@
   <meta name="robots" content="index, follow">
   <link rel="canonical" href="{{ canonical_url }}">
 
+    <link rel="icon" type="image/png" sizes="32x32"
+        href="/static/images/logo.png">
+    <link rel="icon" type="image/png" sizes="192x192"
+          href="/static/images/logo.png">
+    <link rel="apple-touch-icon"
+          href="/static/images/logo.png">
+
   <!-- Theme init script strictly before render to eliminate flash of unstyled theme -->
   <script>
     (function() {
@@ -22,8 +29,6 @@
       } catch (e) {}
     })();
   </script>
-  <!-- MathJax for rendering LaTeX equations in Markdown -->
-  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
   <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
   <script>
     window.MathJax = {
@@ -35,11 +40,10 @@
   </script>
 
 <!-- High-Class Typography: Inter (UI), JetBrains Mono (Code), Lora (Editorial Body) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap" rel="stylesheet">
-  
-  <!-- Open Graph & Social -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,500;0,8..60,600;1,8..60,400;1,8..60,500&display=swap" rel="stylesheet">  <!-- Open Graph & Social -->
   <meta property="og:site_name" content="MADE FOR NOTHING">
   <meta property="og:title" content="{% block og_title %}{{ self.title() }}{% endblock %}">
   <meta property="og:description" content="{% block og_description %}{{ self.description() }}{% endblock %}">
@@ -83,9 +87,7 @@
           <a href="/research" class="nav-link {% if current_type == 'research' %}active{% endif %}" {% if current_type == 'research' %}aria-current="page"{% endif %}>Research</a>
           <a href="/experiments" class="nav-link {% if current_type == 'experiments' %}active{% endif %}" {% if current_type == 'experiments' %}aria-current="page"{% endif %}>Experiments</a>
           <a href="/projects" class="nav-link {% if current_type == 'projects' %}active{% endif %}" {% if current_type == 'projects' %}aria-current="page"{% endif %}>Projects</a>
-          <a href="/books" class="nav-link {% if current_type == 'books' %}active{% endif %}" {% if current_type == 'books' %}aria-current="page"{% endif %}>Books</a>
-          <a href="/about" class="nav-link {% if current_type == 'about' %}active{% endif %}" {% if current_type == 'about' %}aria-current="page"{% endif %}>About</a>
-        </nav>
+          <a href="/books" class="nav-link {% if current_type == 'books' %}active{% endif %}" {% if current_type == 'books' %}aria-current="page"{% endif %}>Books</a>        </nav>
 
         <button id="theme-toggle" class="theme-toggle-btn" type="button" aria-label="Toggle dark/light mode" title="Toggle dark/light mode">
           <span class="theme-icon sun-icon" aria-hidden="true">
@@ -121,59 +123,149 @@
   <!-- Full-Width High-Tech Footer -->
   <footer class="site-footer">
   <div class="footer-container">
-<div class="footer-brand-col">
-  <div class="footer-brand-header">
-    <span class="brand-name">MADE FOR NOTHING</span>
-  </div>
-
-  <p class="footer-summary">
-    An evolving archive of questions, research, experiments, writing,
-    books, and things worth understanding.
-  </p>
-
-  <div class="footer-specs">
-    <span class="spec-item">INDEPENDENT</span>
-    <span class="spec-item">OPEN ACCESS</span>
-    <span class="spec-item">NO TRACKING</span>
-  </div>
-</div>
-
-<div class="footer-nav-col">
-  <div class="footer-col-title">Explore</div>
-
-  <ul class="footer-links">
-    <li><a href="/writing"><span class="link-code">01</span> Writing</a></li>
-    <li><a href="/research"><span class="link-code">02</span> Research</a></li>
-    <li><a href="/experiments"><span class="link-code">03</span> Experiments</a></li>
-    <li><a href="/projects"><span class="link-code">04</span> Projects</a></li>
-    <li><a href="/books"><span class="link-code">05</span> Books</a></li>
-  </ul>
-</div>
-
-<div class="footer-nav-col">
-  <div class="footer-col-title">About</div>
-
-  <ul class="footer-links">
-    <li><a href="/about">About the Archive</a></li>
-    <li><a href="/sitemap.xml">Sitemap</a></li>
-    <li><a href="/robots.txt">Robots.txt</a></li>
-    <li><a href="#main-content" class="back-to-top">&uarr; Return to Top</a></li>
-  </ul>
-</div>
-
-  </div>
-
-  <div class="footer-bottom-bar">
-    <div class="footer-bottom-inner">
-      <div>
-        MADE FOR NOTHING &mdash; Questions that are needed to be asked.
+    <div class="footer-brand-col">
+      <div class="footer-brand-header">
+        <span class="brand-name">MADE FOR NOTHING</span>
       </div>
+      <p class="footer-summary">
+        An evolving archive of questions, research, experiments, writing,
+        books, and things worth understanding.
+      </p>
 
-  <div>
-    2026 &bull; All rights reserved
-  </div>
-</div>
+      <!-- Minimal, Non-Intrusive Newsletter Box -->
+      <section class="footer-newsletter" aria-label="Archive dispatch newsletter">
+        <span class="newsletter-caption">Dispatch</span>
+        <p class="newsletter-sub">Occasional notes, research updates, and new entries. No spam.</p>
+        <form class="newsletter-form" id="newsletter-form" novalidate>
+          <div class="newsletter-input-group">
+            <input 
+              type="email" 
+              name="email" 
+              id="newsletter-email" 
+              class="newsletter-input" 
+              placeholder="name@gmail.com" 
+              aria-label="Email address" 
+              required
+            >
+            <button type="submit" class="newsletter-submit-btn" id="newsletter-btn">
+              <span>Subscribe</span>
+            </button>
+          </div>
+          <div class="newsletter-feedback" id="newsletter-msg" role="status" aria-live="polite"></div>
+        </form>
+      </section>
 
+      <script>
+        (function() {
+          function attachNewsletter() {
+            var form = document.getElementById('newsletter-form');
+            var input = document.getElementById('newsletter-email');
+            var btn = document.getElementById('newsletter-btn');
+            var msg = document.getElementById('newsletter-msg');
+
+            if (!form || !btn || !input || !msg) return;
+
+            form.addEventListener('submit', async function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+
+              var email = (input.value || '').trim();
+
+              msg.className = 'newsletter-feedback';
+              msg.textContent = '';
+
+              if (!email || !email.includes('@')) {
+                msg.className = 'newsletter-feedback error';
+                msg.textContent = 'Please enter a valid email address.';
+                input.focus();
+                return;
+              }
+
+              btn.disabled = true;
+              btn.textContent = 'Sending...';
+
+              try {
+                var response = await fetch('/api/newsletter/subscribe', {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                  },
+                  body: JSON.stringify({ email: email })
+                });
+
+                var data = await response.json();
+
+                if (response.ok && data.success) {
+                  if (data.status === 'added') {
+                    msg.className = 'newsletter-feedback success';
+                    msg.textContent = '✓ ' + (data.message || 'Subscribed successfully.');
+                    input.value = '';
+                  } else {
+                    msg.className = 'newsletter-feedback notice';
+                    msg.textContent = '• ' + (data.message || 'Already subscribed.');
+                  }
+                } else {
+                  msg.className = 'newsletter-feedback error';
+                  msg.textContent = (data && data.detail) ? data.detail : 'Unable to subscribe. Please try again.';
+                }
+              } catch (err) {
+                console.error('Newsletter error:', err);
+                msg.className = 'newsletter-feedback error';
+                msg.textContent = 'Connection error. Please try again.';
+              } finally {
+                btn.disabled = false;
+                btn.textContent = 'Subscribe';
+              }
+            });
+          }
+
+          if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', attachNewsletter);
+          } else {
+            attachNewsletter();
+          }
+        })();
+      </script>
+
+      <div class="footer-specs">
+        <span class="spec-item">INDEPENDENT</span>
+        <span class="spec-item">OPEN ACCESS</span>
+        <span class="spec-item">NO TRACKING</span>
+      </div>
+    </div>
+
+    <div class="footer-nav-col">
+      <div class="footer-col-title">Explore</div>
+      <ul class="footer-links">
+        <li><a href="/writing"><span class="link-code">01</span> Writing</a></li>
+        <li><a href="/research"><span class="link-code">02</span> Research</a></li>
+        <li><a href="/experiments"><span class="link-code">03</span> Experiments</a></li>
+        <li><a href="/projects"><span class="link-code">04</span> Projects</a></li>
+        <li><a href="/books"><span class="link-code">05</span> Books</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-nav-col">
+      <div class="footer-col-title">Connect</div>
+      <ul class="footer-links">
+        <li><a href="https://youtube.com/@nirvishpatel_47?si=lx7XvRZ5IILU1_y7" target="_blank" rel="noopener noreferrer">YouTube</a></li>
+        <li><a href="https://www.instagram.com/_madefornothing/" target="_blank" rel="noopener noreferrer">Instagram</a></li>
+        <li><a href="https://www.linkedin.com/in/nirvishpatel47?utm_source=share_via&utm_content=profile&utm_medium=member_android" target="_blank" rel="noopener noreferrer">LinkedIn</a></li>
+        <li><a href="https://www.reddit.com/user/CandidateKindly9796/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button" target="_blank" rel="noopener noreferrer">Reddit</a></li>
+        <li><a href="https://github.com/Nirvishpatel47" target="_blank" rel="noopener noreferrer">GitHub</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-nav-col">
+      <div class="footer-col-title">About</div>
+      <ul class="footer-links">
+        <li><a href="/about">About the Archive</a></li>
+        <li><a href="/sitemap.xml">Sitemap</a></li>
+        <li><a href="/robots.txt">Robots.txt</a></li>
+        <li><a href="#main-content" class="back-to-top">&uarr; Return to Top</a></li>
+      </ul>
+    </div>
   </div>
 </footer>
 
@@ -201,10 +293,9 @@
   display: grid;
   grid-template-columns:
     minmax(0, 1.6fr)
-    minmax(140px, 0.7fr)
-    minmax(140px, 0.7fr);
+    repeat(3, minmax(110px, 0.7fr));
 
-  gap: 5rem;
+  gap: 3.5rem;
 }
 
 
@@ -222,11 +313,21 @@
 
 .footer-brand-header .brand-name {
   font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-size: clamp(0.9rem, 1.3vw, 1.05rem);
   font-weight: 650;
   letter-spacing: 0.18em;
   color: var(--text);
   white-space: nowrap;
+}
+
+.brand-name {
+  font-family: var(--font-sans);
+  font-size: clamp(0.82rem, 1.2vw, 0.95rem);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--text);
 }
 
 .footer-summary {
@@ -402,6 +503,163 @@ mjx-container[display="true"] {
   border-left: 2px solid var(--border-hover);
   margin: 1.5rem 0 !important;
 }
+
+/* ==========================================================================
+   Editorial Newsletter Component
+   ========================================================================== */
+.footer-newsletter {
+  margin-top: 1.85rem;
+  padding-top: 1.4rem;
+  border-top: 1px solid var(--border-subtle);
+  max-width: 420px;
+}
+
+.newsletter-caption {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 0.35rem;
+}
+
+.newsletter-sub {
+  font-family: var(--font-serif);
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0 0 0.85rem;
+}
+
+.newsletter-input-group {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-surface);
+  transition: border-color var(--ease), box-shadow var(--ease);
+}
+
+.newsletter-input-group:focus-within {
+  border-color: var(--border-hover);
+  box-shadow: 0 0 0 1px var(--accent-brand);
+}
+
+.newsletter-input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.55rem 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text);
+  background: transparent;
+  border: none;
+  outline: none;
+}
+
+.newsletter-input::placeholder {
+  color: var(--text-dim);
+}
+
+.newsletter-submit-btn {
+  border: none;
+  background: transparent;
+  color: var(--accent-brand);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.55rem 0.85rem;
+  cursor: pointer;
+  border-left: 1px solid var(--border-subtle);
+  transition: background-color var(--ease), color var(--ease);
+  white-space: nowrap;
+}
+
+.newsletter-submit-btn:hover {
+  background-color: var(--bg-subtle);
+  color: var(--text);
+}
+
+.newsletter-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.newsletter-feedback {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  margin-top: 0.5rem;
+  min-height: 1.1rem;
+}
+
+.newsletter-feedback.success {
+  color: #3e6b4e;
+}
+
+.newsletter-feedback.error {
+  color: #a33b3b;
+}
+
+[data-theme="dark"] .newsletter-feedback.success {
+  color: #7dcaa4;
+}
+
+[data-theme="dark"] .newsletter-feedback.error {
+  color: #e08a8a;
+}
+
+/* Tablet & Mobile Adjustments */
+@media (max-width: 480px) {
+  .newsletter-input-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .newsletter-submit-btn {
+    border-left: none;
+    border-top: 1px solid var(--border-subtle);
+    padding: 0.6rem;
+    text-align: center;
+  }
+}
+
+.newsletter-feedback {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  margin-top: 0.6rem;
+  min-height: 1.2rem;
+  line-height: 1.4;
+  transition: opacity 0.2s ease;
+}
+
+.newsletter-feedback.success {
+  color: #2e6b47;
+}
+
+.newsletter-feedback.notice {
+  color: #8c6b1f;
+}
+
+.newsletter-feedback.error {
+  color: #b23a3a;
+}
+
+[data-theme="dark"] .newsletter-feedback.success {
+  color: #7dcaa4;
+}
+
+[data-theme="dark"] .newsletter-feedback.notice {
+  color: #d1b46a;
+}
+
+[data-theme="dark"] .newsletter-feedback.error {
+  color: #f08c8c;
+}
+
 </style>
 
 </body>

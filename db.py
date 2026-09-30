@@ -97,6 +97,19 @@ def init_db():
         continue_reading_slugs TEXT[] DEFAULT '{}'
     );
 
+    CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(320) NOT NULL UNIQUE,
+        subscribed_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        is_active BOOLEAN NOT NULL DEFAULT TRUE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_email
+    ON newsletter_subscribers (email);
+
+    CREATE INDEX IF NOT EXISTS idx_newsletter_subscribers_active
+    ON newsletter_subscribers (is_active);
+
     -- Schema evolution without external .sql files
     ALTER TABLE posts ADD COLUMN IF NOT EXISTS show_on_landing BOOLEAN DEFAULT FALSE;
 
@@ -501,3 +514,50 @@ def toggle_landing_status(post_id):
             updated = cur.fetchone()
         conn.commit()
         return dict(updated)
+
+def add_subscriber(email):
+    if not email:
+        raise ValueError("Email is required.")
+
+    email = email.strip().lower()
+
+    if len(email) > 320 or "@" not in email:
+        raise ValueError("Invalid email address.")
+
+    insert_query = """
+        INSERT INTO newsletter_subscribers (email)
+        VALUES (%s)
+        ON CONFLICT (email) DO NOTHING
+        RETURNING id, email, subscribed_at, is_active
+    """
+
+    with get_connection() as conn:
+        with conn.cursor() as cur:
+            cur.execute(insert_query, (email,))
+            row = cur.fetchone()
+
+            if row:
+                conn.commit()
+                return {
+                    "success": True,
+                    "created": True,
+                    "subscriber": dict(row)
+                }
+
+            # Already subscribed — reactivate if necessary
+            cur.execute("""
+                UPDATE newsletter_subscribers
+                SET is_active = TRUE
+                WHERE email = %s
+                RETURNING id, email, subscribed_at, is_active
+            """, (email,))
+
+            row = cur.fetchone()
+
+        conn.commit()
+
+    return {
+        "success": True,
+        "created": False,
+        "subscriber": dict(row)
+    }

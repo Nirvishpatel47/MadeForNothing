@@ -1,48 +1,41 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Main pages -->
   <url>
     <loc>{{ base_url }}/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
   </url>
+
   <url>
     <loc>{{ base_url }}/writing</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
   </url>
+
   <url>
     <loc>{{ base_url }}/research</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
   </url>
+
   <url>
     <loc>{{ base_url }}/experiments</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
   </url>
+
   <url>
     <loc>{{ base_url }}/projects</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
   </url>
+
   <url>
     <loc>{{ base_url }}/books</loc>
-    <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
   </url>
-  <url>
-    <loc>{{ base_url }}/about</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-  </url>
+
+  <!-- Individual content -->
   {% for item in posts %}
   <url>
     <loc>{{ base_url }}/{{ item.type }}/{{ item.slug }}</loc>
+
     {% if item.updated_at or item.published_at %}
-      <lastmod>{{ (item.updated_at or item.published_at).strftime('%Y-%m-%d') }}</lastmod>
+    <lastmod>{{ (item.updated_at or item.published_at).strftime('%Y-%m-%d') }}</lastmod>
     {% endif %}
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+
   </url>
   {% endfor %}
+
 </urlset>
