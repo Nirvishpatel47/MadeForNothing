@@ -1,0 +1,303 @@
+{% extends "base.html" %}
+
+{% block title %}Enrollment Settlement &mdash; {{ course.title }} &bull; MADE FOR NOTHING{% endblock %}
+
+{% block description %}Direct peer-to-peer UPI settlement for {{ course.title }} with manual instructor verification.{% endblock %}
+
+{% block container_class %}payment-page-container{% endblock %}
+
+{% block content %}
+<div class="settlement-layout">
+
+  <!-- Breadcrumb Navigation -->
+  <nav class="settlement-nav" aria-label="Breadcrumb">
+    <a href="/courses/{{ course.slug }}" class="settlement-back-link">
+      <span aria-hidden="true">&larr;</span>
+      <span>Back to {{ course.title }}</span>
+    </a>
+  </nav>
+
+  <!-- Architectural Settlement Masthead -->
+  <header class="settlement-header">
+    <div class="settlement-meta-bar">
+      <span class="type-badge">Enrollment</span>
+      <span class="meta-dot">&bull;</span>
+      <span class="settlement-meta-tag">Direct Peer-to-Peer Transfer</span>
+      <span class="meta-dot">&bull;</span>
+      <span class="settlement-meta-tag">Zero Intermediary Fees</span>
+    </div>
+
+    <h1 class="settlement-title">Enroll in {{ course.title }}</h1>
+    <p class="settlement-desc">
+      To maintain zero third-party payment gateway tracking and keep corporate processing fees at zero, curriculum enrollment is settled directly via peer-to-peer UPI transfer with manual verification against bank records.
+    </p>
+  </header>
+
+  {% if existing_pending %}
+
+    <!-- Formal Verification Receipt Ledger (Pending State) -->
+    <section class="settlement-receipt-card" aria-label="Verification status">
+      <div class="receipt-header-row">
+        <div class="receipt-pill-warning">
+          <span class="pill-dot-warning"></span>
+          <span>Verification in Progress</span>
+        </div>
+        <span class="receipt-timestamp">{{ existing_pending.submitted_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+      </div>
+
+      <h2 class="receipt-title">Transaction Reference Logged</h2>
+      <p class="receipt-text">
+        You have submitted a payment reference for manual auditing. Verification typically completes within <strong>2–3 hours</strong> during active studio hours.
+      </p>
+
+      <div class="receipt-details-table">
+        <div class="receipt-row">
+          <span class="receipt-key">Course</span>
+          <span class="receipt-val">{{ course.title }}</span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-key">Transaction UTR / Ref</span>
+          <span class="receipt-val"><code>{{ existing_pending.payment_reference }}</code></span>
+        </div>
+        <div class="receipt-row">
+          <span class="receipt-key">Amount Transferred</span>
+          <span class="receipt-val">&#8377;{{ "{:,}".format(existing_pending.amount) }}</span>
+        </div>
+        {% if existing_pending.payer_name %}
+          <div class="receipt-row">
+            <span class="receipt-key">Payer Name</span>
+            <span class="receipt-val">{{ existing_pending.payer_name }}</span>
+          </div>
+        {% endif %}
+        <div class="receipt-row">
+          <span class="receipt-key">Verification Status</span>
+          <span class="receipt-val-highlight">Awaiting Bank Ledger Match</span>
+        </div>
+      </div>
+
+      <div class="receipt-actions-row">
+        <a href="/courses/dashboard" class="btn-receipt-primary">
+          Open Studio Dashboard &rarr;
+        </a>
+        <a href="/courses/{{ course.slug }}" class="btn-receipt-secondary">
+          Review Syllabus
+        </a>
+      </div>
+    </section>
+
+  {% else %}
+
+    <!-- Two-Column Settlement Ledger -->
+    <div class="settlement-grid">
+
+      <!-- Column 1: Payment Parameters & QR Matrix -->
+      <section class="settlement-card transfer-specs-card" aria-label="Transfer details">
+        <div class="card-step-badge">
+          <span class="step-counter">01</span>
+          <span class="step-label">Direct UPI Transfer</span>
+        </div>
+
+        <div class="tuition-banner">
+          <span class="tuition-caption">Exact Settlement Amount</span>
+          <span class="tuition-amount">&#8377;{{ "{:,}".format(course.price) }}</span>
+        </div>
+
+        <!-- High-Contrast QR Matrix -->
+        <div class="qr-canvas-wrapper">
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=upi%3A%2F%2Fpay%3Fpa%3D{{ upi_id }}%26pn%3D{{ payment_name|urlencode }}%26am%3D{{ course.price }}%26cu%3DINR" 
+               alt="UPI QR Code for &#8377;{{ course.price }}" 
+               class="qr-canvas-image" 
+               width="200" 
+               height="200">
+          <span class="qr-subtext">Scan with Google Pay, PhonePe, Paytm, or BHIM</span>
+        </div>
+
+        <!-- Transfer Telemetry Table -->
+        <div class="transfer-specs-table">
+          <div class="spec-row">
+            <span class="spec-label">UPI ID</span>
+            <div class="spec-copy-widget">
+              <code id="upi-id-text" class="spec-code">{{ upi_id }}</code>
+              <button type="button" class="btn-copy-spec" id="btn-copy-upi" onclick="copyUpiId()" title="Copy UPI ID">
+                Copy
+              </button>
+            </div>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Payee Name</span>
+            <span class="spec-val">{{ payment_name }}</span>
+          </div>
+          <div class="spec-row">
+            <span class="spec-label">Note / Remark</span>
+            <span class="spec-val"><code>{{ course.slug }}</code></span>
+          </div>
+        </div>
+
+        <div class="mobile-intent-block">
+          <a href="upi://pay?pa={{ upi_id }}&pn={{ payment_name|urlencode }}&am={{ course.price }}&cu=INR" 
+             class="btn-intent-direct">
+            <span>Open in UPI App Directly</span>
+            <span class="btn-arrow">&nearr;</span>
+          </a>
+        </div>
+      </section>
+
+      <!-- Column 2: Audit Submission Form -->
+      <section class="settlement-card audit-form-card" aria-label="Reference submission">
+        <div class="card-step-badge">
+          <span class="step-counter">02</span>
+          <span class="step-label">Submit Verification UTR</span>
+        </div>
+
+        <p class="audit-instructions">
+          After completing your UPI transfer, locate the <strong>12-digit UTR</strong> (Unique Transaction Reference) or <strong>UPI Ref ID</strong> on your bank receipt or notification, and submit it below to register your enrollment.
+        </p>
+
+        {% if error_message %}
+          <div class="settlement-error-alert" role="alert">
+            <span class="error-glyph">&times;</span>
+            <span>{{ error_message }}</span>
+          </div>
+        {% endif %}
+
+        <div id="utr-client-error" class="settlement-error-alert" role="alert" style="display: none;">
+          <span class="error-glyph">&times;</span>
+          <span id="utr-client-error-text"></span>
+        </div>
+
+        <form id="settlement-utr-form" action="/courses/{{ course.slug }}/payment" method="POST" class="settlement-form" novalidate onsubmit="return validateUtrSubmission(event);">
+          <div class="form-field-group">
+            <div style="display: flex; justify-content: space-between; align-items: baseline;">
+              <label for="payment_reference" class="form-field-label">
+                12-Digit UTR / Transaction Reference <span class="required-asterisk">*</span>
+              </label>
+              <span id="utr-digit-counter" class="form-field-hint" style="font-family: var(--font-mono); font-size: 0.72rem;">0 / 12 digits</span>
+            </div>
+            <input 
+              type="text" 
+              name="payment_reference" 
+              id="payment_reference" 
+              class="form-field-input" 
+              placeholder="e.g. 427189123456" 
+              value="{{ submitted_reference or '' }}"
+              required
+              inputmode="numeric"
+              maxlength="12"
+              autocomplete="off"
+              oninput="handleUtrInput(this)"
+            >
+            <span class="form-field-hint">Must be exactly 12 digits (0–9). Located in your UPI app receipt or bank SMS.</span>
+          </div>
+
+          <div class="form-field-group">
+            <label for="payer_name" class="form-field-label">Payer / Account Holder Name (Optional)</label>
+            <input 
+              type="text" 
+              name="payer_name" 
+              id="payer_name" 
+              class="form-field-input" 
+              value="{{ submitted_payer_name if submitted_payer_name is defined and submitted_payer_name else current_user.name }}" 
+              placeholder="Name on bank account"
+            >
+          </div>
+
+          <div class="form-field-group">
+            <label for="payer_note" class="form-field-label">Additional Note / App (Optional)</label>
+            <input 
+              type="text" 
+              name="payer_note" 
+              id="payer_note" 
+              class="form-field-input" 
+              value="{{ submitted_payer_note or '' }}"
+              placeholder="e.g. Paid via PhonePe / HDFC Bank"
+            >
+          </div>
+
+          <button type="submit" id="btn-settle-submit" class="btn-settle-submit">
+            <span id="btn-settle-submit-text">Submit Reference for Audit</span>
+            <span class="btn-arrow">&rarr;</span>
+          </button>
+        </form>
+
+        <div class="audit-guarantee-note">
+          <div class="guarantee-icon">&#9432;</div>
+          <div class="guarantee-text">
+            <strong>Manual Verification:</strong> Settlements are audited manually against bank statements. Access is typically granted within <strong>2–3 hours</strong>. Your dashboard updates automatically once approved.
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+  {% endif %}
+
+</div>
+
+<script>
+function copyUpiId() {
+  var text = document.getElementById("upi-id-text").innerText;
+  var btn = document.getElementById("btn-copy-upi");
+  navigator.clipboard.writeText(text).then(function() {
+    var oldText = btn.innerText;
+    btn.innerText = "✓ Copied";
+    btn.style.color = "var(--accent-brand)";
+    setTimeout(function() {
+      btn.innerText = oldText;
+      btn.style.color = "";
+    }, 2000);
+  });
+}
+
+function handleUtrInput(inputEl) {
+  if (!inputEl) return;
+  var digitsOnly = (inputEl.value || "").replace(/\D/g, "").slice(0, 12);
+  if (inputEl.value !== digitsOnly) {
+    inputEl.value = digitsOnly;
+  }
+  var counter = document.getElementById("utr-digit-counter");
+  if (counter) {
+    counter.textContent = digitsOnly.length + " / 12 digits";
+    counter.style.color = (digitsOnly.length === 12) ? "var(--accent-brand)" : "";
+    counter.style.fontWeight = (digitsOnly.length === 12) ? "600" : "";
+  }
+  if (digitsOnly.length === 12) {
+    var errBox = document.getElementById("utr-client-error");
+    if (errBox) errBox.style.display = "none";
+  }
+}
+
+function validateUtrSubmission(e) {
+  var inputEl = document.getElementById("payment_reference");
+  if (!inputEl) return true;
+  var digitsOnly = (inputEl.value || "").replace(/\D/g, "");
+  inputEl.value = digitsOnly;
+
+  var errBox = document.getElementById("utr-client-error");
+  var errText = document.getElementById("utr-client-error-text");
+
+  if (digitsOnly.length !== 12) {
+    if (e) e.preventDefault();
+    if (errBox && errText) {
+      errText.textContent = "A 12-digit UTR number is compulsory. Please enter all 12 digits.";
+      errBox.style.display = "flex";
+    }
+    inputEl.focus();
+    return false;
+  }
+
+  if (errBox) errBox.style.display = "none";
+  var submitBtn = document.getElementById("btn-settle-submit");
+  var submitText = document.getElementById("btn-settle-submit-text");
+  if (submitBtn) submitBtn.disabled = true;
+  if (submitText) submitText.textContent = "Submitting UTR...";
+  return true;
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  var inputEl = document.getElementById("payment_reference");
+  if (inputEl && inputEl.value) {
+    handleUtrInput(inputEl);
+  }
+});
+</script>
+{% endblock %}

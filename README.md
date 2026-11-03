@@ -33,36 +33,55 @@ A distinct, production-grade personal research website, digital notebook, and ar
 
 ```text
 .
-├── .env                     # Database URL, host/port settings
+├── .env                     # Database URL, JWT secrets, Firebase, Mux settings
 ├── README.md                # Documentation and run instructions
-├── db.py                    # Connection pool, schema init/migration, parameterized CRUD
+├── pytest.ini               # Pytest configuration
+├── requirements.txt         # Dependencies (FastAPI, PyJWT, pytest, etc.)
+├── db.py                    # Backward-compatible database facade (re-exports database/)
+├── database/                # Modular domain-driven database layer
+│   ├── __init__.py          # Exports all functions, schemas, and connection pools
+│   ├── connection.py        # Connection pooling (psycopg2/3), dict rows & health checks
+│   ├── schema.py            # DDL initialization & foreign key self-healing migrations
+│   ├── posts.py             # Editorial posts, landing curation, tags, slugs & CRUD
+│   ├── subscribers.py       # Newsletter registrations & unsubscribe queries
+│   ├── users.py             # Enrolled users, mobile numbers & Firebase sync
+│   ├── courses.py           # Courses, lessons, Mux video assets & Q&As
+│   ├── enrollments.py       # Student enrollment verification & dashboard progress
+│   ├── payments.py          # UPI submissions, 12-digit UTR checks & approval audits
+│   └── progress.py          # Lesson watch progress & reflection self-assessments
+├── auth.py                  # JWT session management & Firebase Authentication
 ├── markdown_utils.py        # Markdown rendering and HTML sanitization
-├── app.py                   # Public FastAPI reader application
+├── mux_utils.py             # Mux video signed playback tokens
+├── app.py                   # Public FastAPI application (modular router mount)
 ├── admin.py                 # Local-only Admin FastAPI application
 ├── seed.py                  # Database initialization and editorial seed data
+├── core/                    # Core configuration & defensive security
+│   ├── __init__.py          # Exports settings and security middleware
+│   ├── config.py            # Centralized settings & type constants
+│   └── security.py          # SecurityHeadersMiddleware & input sanitizers
+├── routers/                 # Modular domain routers
+│   ├── __init__.py          # Router aggregations
+│   ├── public.py            # Editorial articles, archives, sitemap, robots
+│   ├── auth.py              # Login, register, Google/Firebase auth, cookies
+│   ├── courses.py           # Catalog, course detail, student dashboard
+│   ├── lessons.py           # Protected lesson player, signed tokens, quiz APIs
+│   └── payments.py          # Peer-to-peer UPI enrollment & 12-digit UTR audit
+├── tests/                   # Automated verification test suite
+│   ├── __init__.py
+│   ├── conftest.py          # Test fixtures and mock test clients
+│   ├── run_all_tests.py     # Standalone test runner (python tests/run_all_tests.py)
+│   ├── test_public_routes.py # Public reader & newsletter tests
+│   ├── test_auth_routes.py  # Password hashing, JWT, registration & mobile tests
+│   ├── test_courses_routes.py # Course catalog, syllabus, and dashboard tests
+│   ├── test_payments_routes.py # 12-digit UTR validation & duplicate tests
+│   ├── test_lessons_routes.py # Lesson enrollment gates & interactive APIs
+│   ├── test_admin_routes.py # Localhost isolation & dashboard tests
+│   └── test_security.py     # Security headers, XSS prevention, sanitization
 ├── static/
-│   ├── css/
-│   │   └── style.css        # Publication-grade styles (light/dark mode, typography)
-│   └── js/
-│       └── main.js          # Dark mode toggle, reading progress bar, copy-code helper
-├── templates/
-│   ├── base.html            # Base layout with SEO metadata & reading progress
-│   ├── index.html           # Dedicated research landing experience (What, Work, Start Here)
-│   ├── list.html            # Clean editorial archive lists (/writing, /research, etc.)
-│   ├── detail.html          # Detail reader view with links & continue reading
-│   ├── about.html           # Ethos, colophon, and architecture
-│   ├── 404.html             # Clean 404 error page
-│   └── sitemap.xml          # Dynamic XML sitemap
-└── admin/
-    ├── static/
-    │   ├── css/
-    │   │   └── admin.css    # Clean admin dashboard & split-editor styles
-    │   └── js/
-    │       └── admin.js     # Live markdown preview & link manager
-    └── templates/
-        ├── base.html        # Admin layout
-        ├── dashboard.html   # Posts management table with landing status & filters
-        └── form.html        # Post creation & edit form with Landing Page toggle
+│   ├── css/style.css        # Publication styles (light/dark mode, responsive)
+│   └── js/main.js           # Theme toggle, reading progress, copy helpers
+├── templates/               # Public Jinja2 templates
+└── admin/                   # Admin static assets & templates
 ```
 
 ---
@@ -116,6 +135,18 @@ uvicorn admin:admin_app --host 127.0.0.1 --port 8001 --reload
 Open:
 - **Admin Dashboard**: `http://127.0.0.1:8001/`
 
+### 5. Run Automated Tests
+
+To test the entire functionality of all modules (public routes, authentication, course catalog, payments, lessons, admin security, and defensive headers):
+
+```bash
+# Option A: Standalone test runner (runs pytest or falls back to unittest)
+python tests/run_all_tests.py
+
+# Option B: Run via pytest directly
+pytest
+```
+
 ---
 
 ## Admin Capabilities
@@ -125,3 +156,31 @@ Open:
 - **Split Markdown Editor**: Live side-by-side preview with debounced rendering.
 - **Metadata Management**: Tags, external citations/links, and SEO title/description overrides.
 - **Continue Reading**: Curate up to 3 related published entries per post.
+- **Course & Lesson Management**: Full editorial control over courses, units, and Q&As.
+- **Mux Direct Upload & Signed Playback**: Secure signed video asset configuration.
+- **Manual Payment Verification**: Approve or reject manual UPI UTR submissions with one click.
+
+---
+
+## Course System Architecture
+
+```text
+PUBLIC WEBSITE
+    ↓
+/courses & /courses/{slug}
+    ↓
+Student Sign-In / Register (HttpOnly JWT)
+    ↓
+Manual UPI Transfer & UTR Submission (/courses/{slug}/enroll)
+    ↓
+Status: Pending (Manual Verification)
+    ↓
+Instructor Approves Payment (/payments in Admin)
+    ↓
+Active Enrollment Granted Automatically
+    ↓
+Student Course Dashboard (/course/dashboard)
+    ↓
+Lesson Viewer with Signed Mux Video & Instructor Q&A (/courses/{slug}/lessons/{id})
+```
+

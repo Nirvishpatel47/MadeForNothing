@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Studio Dashboard &mdash; MADE FOR NOTHING{% endblock %}
+
+{% block description %}Personal learning studio, active curriculum tracking, and lecture notes archive.{% endblock %}
+
+{% block container_class %}dashboard-page-container{% endblock %}
+
+{% block content %}
+<div class="studio-dashboard-layout">
+
+  <!-- Editorial Studio Masthead -->
+  <header class="studio-header">
+    <div class="studio-meta-bar">
+      <span class="type-badge">Studio</span>
+      <span class="meta-dot">&bull;</span>
+      <span class="studio-fellow-id">{{ current_user.email }}</span>
+      {% if enrolled_courses %}
+        <span class="meta-dot">&bull;</span>
+        <span class="studio-telemetry">
+          {{ total_completed_units }} of {{ total_units }} units mastered
+        </span>
+      {% endif %}
+    </div>
+
+    <div class="studio-masthead-row">
+      <div>
+        <h1 class="studio-title">Learning Home</h1>
+        <p class="studio-desc">
+          Your active technical curricula, progressive marginalia, and lecture checkpoints. Welcome back, {{ current_user.name }}.
+        </p>
+      </div>
+      <div class="studio-masthead-actions">
+        <a href="/courses" class="btn-studio-browse">
+          <span>Explore All Curricula</span>
+          <span class="btn-arrow">&rarr;</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Pending Payment Verification Notice (Restrained Archival Memorandum) -->
+  {% if pending_payments %}
+    <section class="studio-pending-block" aria-label="Pending enrollments">
+      <div class="pending-memorandum-header">
+        <span class="pending-pill-mono">Awaiting Bank Verification</span>
+        <span class="meta-dot">&bull;</span>
+        <span class="pending-note-text">Direct manual settlement in progress (typically 2–3 hours)</span>
+      </div>
+      
+      <div class="pending-memorandum-list">
+        {% for p in pending_payments %}
+          <div class="pending-memorandum-item">
+            <div class="pending-item-details">
+              <h3 class="pending-course-name">{{ p.course_title }}</h3>
+              <div class="pending-item-telemetry">
+                <span>UTR / Ref: <code>{{ p.payment_reference }}</code></span>
+                <span class="meta-dot">&bull;</span>
+                <span>Amount: <strong>&#8377;{{ "{:,}".format(p.amount) }}</strong></span>
+                <span class="meta-dot">&bull;</span>
+                <span>Submitted: {{ p.submitted_at.strftime('%b %d, %Y at %H:%M UTC') }}</span>
+              </div>
+            </div>
+            <div class="pending-item-status">
+              <span class="status-indicator-dot"></span>
+              <span>Pending Review</span>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if enrolled_courses %}
+
+    <!-- Primary Active Track (Hero "Continue Learning" Focus Unit) -->
+    {% if primary_course and primary_course.next_lesson %}
+      <section class="studio-hero-track" aria-label="Current curriculum focus">
+        <div class="hero-track-label-row">
+          <span class="hero-track-tag">Current Primary Track</span>
+          <span class="hero-track-pct">{{ primary_course.progress_percent }}% Complete</span>
+        </div>
+
+        <div class="hero-track-body">
+          <div class="hero-track-content">
+            <h2 class="hero-track-title">
+              <a href="/courses/{{ primary_course.slug }}">
+                {{ primary_course.title }}
+              </a>
+            </h2>
+            {% if primary_course.subtitle %}
+              <p class="hero-track-subtitle">{{ primary_course.subtitle }}</p>
+            {% endif %}
+
+            <!-- Next Up Lecture Slate -->
+            <div class="hero-next-slate">
+              <div class="next-slate-header">
+                <span class="slate-kicker">Up Next &bull; Unit {{ "%02d" % (primary_course.next_lesson.order_index or 1) }}</span>
+                {% if primary_course.next_lesson.duration_minutes %}
+                  <span class="slate-duration">{{ primary_course.next_lesson.duration_minutes }}m runtime</span>
+                {% endif %}
+              </div>
+              <div class="next-slate-title">
+                {{ primary_course.next_lesson.title }}
+              </div>
+            </div>
+          </div>
+
+          <div class="hero-track-cta">
+            <a href="/courses/{{ primary_course.slug }}/lessons/{{ primary_course.next_lesson.id }}" class="btn-hero-continue">
+              <span class="play-glyph">&#9658;</span>
+              <span>Continue Lesson {{ "%02d" % (primary_course.next_lesson.order_index or 1) }}</span>
+              <span class="btn-arrow">&rarr;</span>
+            </a>
+            <a href="/courses/{{ primary_course.slug }}" class="btn-hero-syllabus">
+              <span>Full Syllabus &amp; Notes</span>
+              <span class="btn-arrow">&rarr;</span>
+            </a>
+          </div>
+        </div>
+
+        <!-- Precision Progress Track -->
+        <div class="hero-track-progress">
+          <div class="progress-bar-rail" role="progressbar" aria-valuenow="{{ primary_course.progress_percent }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar-fill" style="width: {{ primary_course.progress_percent }}%;"></div>
+          </div>
+          <div class="progress-metric-row">
+            <span>{{ primary_course.completed_lessons }} of {{ primary_course.total_lessons }} lessons completed</span>
+            <span>{{ primary_course.total_lessons - primary_course.completed_lessons }} remaining</span>
+          </div>
+        </div>
+      </section>
+    {% endif %}
+
+    <!-- All Enrolled Curricula Ledger -->
+    <section class="studio-curricula-section" aria-label="Enrolled curricula">
+      <div class="section-heading-bar">
+        <div class="heading-left">
+          <h2 class="studio-section-heading">Enrolled Technical Curricula</h2>
+          <span class="section-count-tag">{{ enrolled_courses|length }} Active</span>
+        </div>
+        <div class="heading-right">
+          <a href="/courses" class="btn-curricula-catalog">
+            <span>+ Browse Catalog</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="curricula-ledger">
+        {% for course in enrolled_courses %}
+          <article class="curriculum-ledger-card">
+            <div class="ledger-card-header">
+              <div class="ledger-num-col">
+                <span class="ledger-index-num">№ {{ "%02d" % loop.index }}</span>
+              </div>
+              <div class="ledger-info-col">
+                <h3 class="ledger-course-title">
+                  <a href="/courses/{{ course.slug }}">
+                    {{ course.title }}
+                  </a>
+                </h3>
+                {% if course.subtitle %}
+                  <p class="ledger-course-deck">{{ course.subtitle }}</p>
+                {% endif %}
+              </div>
+              <div class="ledger-stat-col">
+                <div class="ledger-progress-pill">
+                  <span class="pill-pct">{{ course.progress_percent }}%</span>
+                  <span class="pill-detail">{{ course.completed_lessons }}/{{ course.total_lessons }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="ledger-card-footer">
+              <div class="ledger-mini-rail">
+                <div class="ledger-mini-fill" style="width: {{ course.progress_percent }}%;"></div>
+              </div>
+
+              <div class="ledger-actions-row">
+                <div class="ledger-sub-text">
+                  {% if course.next_lesson %}
+                    Next: <span class="next-title-inline">Unit {{ "%02d" % (course.next_lesson.order_index or 1) }}: {{ course.next_lesson.title }}</span>
+                  {% else %}
+                    <span>All units completed</span>
+                  {% endif %}
+                </div>
+
+                <div class="ledger-btn-group">
+                  <a href="/courses/{{ course.slug }}" class="btn-ledger-secondary" title="View syllabus">
+                    <span>Syllabus</span>
+                  </a>
+                  {% if course.next_lesson_id %}
+                    <a href="/courses/{{ course.slug }}/lessons/{{ course.next_lesson_id }}" class="btn-ledger-primary" title="Resume course">
+                      <span class="play-glyph">&#9658;</span>
+                      <span>Continue &rarr;</span>
+                    </a>
+                  {% else %}
+                    <a href="/courses/{{ course.slug }}" class="btn-ledger-primary" title="Review completed course">
+                      <span>Review &rarr;</span>
+                    </a>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+    </section>
+
+  {% else %}
+
+    <!-- Branded Laboratory Empty State -->
+    <section class="studio-empty-state">
+      <div class="empty-state-badge">Curriculum Ledger</div>
+      <h2 class="empty-state-title">No Active Enrollments Found</h2>
+      <p class="empty-state-text">
+        The MADE FOR NOTHING curriculum archive hosts rigorous, independent technical investigations into artificial intelligence, computational graphs, and distributed systems.
+      </p>
+      <div class="empty-state-actions">
+        <a href="/courses" class="btn-hero-continue" style="display: inline-flex;">
+          <span>Explore Available Courses</span>
+          <span class="btn-arrow">&rarr;</span>
+        </a>
+      </div>
+    </section>
+
+  {% endif %}
+
+</div>
+{% endblock %}

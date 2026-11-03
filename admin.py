@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 import db
 import markdown_utils
+import mux_utils
 
 load_dotenv()
 
@@ -32,6 +33,8 @@ async def lifespan(app: FastAPI):
     yield
 
 
+from core.security import SecurityHeadersMiddleware
+
 admin_app = FastAPI(
     title="MADE FOR NOTHING - Admin",
     description="Local-only administration application for MADE FOR NOTHING.",
@@ -39,6 +42,9 @@ admin_app = FastAPI(
     redoc_url=None,
     lifespan=lifespan
 )
+
+# Apply Defensive Security Headers Middleware
+admin_app.add_middleware(SecurityHeadersMiddleware)
 
 
 # Security: Ensure requests originate strictly from localhost
@@ -54,9 +60,13 @@ async def verify_localhost_only(request: Request, call_next):
     return await call_next(request)
 
 
-# Mount Admin static assets and templates
-admin_app.mount("/admin-static", StaticFiles(directory="admin/static"), name="admin-static")
-templates = Jinja2Templates(directory="admin/templates")
+# Mount Admin static assets and templates with reliable directory resolution
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ADMIN_STATIC_DIR = os.path.join(BASE_DIR, "admin", "static")
+ADMIN_TEMPLATES_DIR = os.path.join(BASE_DIR, "admin", "templates")
+
+admin_app.mount("/admin-static", StaticFiles(directory=ADMIN_STATIC_DIR if os.path.isdir(ADMIN_STATIC_DIR) else "admin/static"), name="admin-static")
+templates = Jinja2Templates(directory=ADMIN_TEMPLATES_DIR if os.path.isdir(ADMIN_TEMPLATES_DIR) else "admin/templates")
 
 
 @admin_app.get("/", response_class=HTMLResponse)
@@ -99,6 +109,7 @@ def dashboard(
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
+        "admin_section": "posts",
         "posts": posts,
         "valid_types": db.VALID_TYPES,
         "current_filter_type": post_type,
@@ -313,6 +324,499 @@ async def preview_markdown(request: Request):
 
     html_content = markdown_utils.render_markdown(md_text)
     return JSONResponse(content={"html": html_content})
+
+
+# =============================================================================
+# COURSE MANAGEMENT ROUTES
+# =============================================================================
+
+@admin_app.get("/courses", response_class=HTMLResponse)
+@admin_app.get("/courses/dashboard", response_class=HTMLResponse)
+def list_courses_admin(request: Request):
+    try:
+        courses = db.get_all_courses_admin()
+    except Exception as e:
+        logger.error(f"Error fetching admin courses: {e}")
+        courses = []
+
+    return templates.TemplateResponse("courses_dashboard.html", {
+        "request": request,
+        "admin_section": "courses",
+        "courses": courses,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.get("/courses/new", response_class=HTMLResponse)
+def new_course_form(request: Request):
+    return templates.TemplateResponse("course_form.html", {
+        "request": request,
+        "admin_section": "courses",
+        "course": None,
+        "error": None,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.post("/courses/new", response_class=HTMLResponse)
+async def create_course_action(request: Request):
+    form_data = await request.form()
+    title = form_data.get("title", "").strip()
+    slug = form_data.get("slug", "").strip()
+    subtitle = form_data.get("subtitle", "").strip()
+    description = form_data.get("description", "").strip()
+    what_you_will_learn = form_data.get("what_you_will_learn", "").strip()
+    target_audience = form_data.get("target_audience", "").strip()
+    instructor_bio = form_data.get("instructor_bio", "").strip()
+    price_raw = form_data.get("price", "0").strip()
+    thumbnail = form_data.get("thumbnail", "").strip()
+    is_published = form_data.get("is_published") is not None
+
+    try:
+        price = max(0, int(price_raw))
+    except ValueError:
+        price = 0
+
+    # Parse FAQs
+    faq_questions = form_data.getlist("faq_question[]")
+    faq_answers = form_data.getlist("faq_answer[]")
+    faq = []
+    for q, a in zip(faq_questions, faq_answers):
+        if q.strip() and a.strip():
+            faq.append({"question": q.strip(), "answer": a.strip()})
+
+    data = {
+        "title": title,
+        "slug": slug,
+        "subtitle": subtitle,
+        "description": description,
+        "what_you_will_learn": what_you_will_learn,
+        "target_audience": target_audience,
+        "instructor_bio": instructor_bio,
+        "price": price,
+        "thumbnail": thumbnail,
+        "is_published": is_published,
+        "faq": faq
+    }
+
+    try:
+        db.create_course(data)
+        return RedirectResponse(url="/courses", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        logger.error(f"Error creating course: {e}")
+        return templates.TemplateResponse("course_form.html", {
+            "request": request,
+            "admin_section": "courses",
+            "course": data,
+            "error": f"Failed to save course: {e}",
+            "public_base_url": PUBLIC_BASE_URL
+        }, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@admin_app.get("/courses/{course_id}/edit", response_class=HTMLResponse)
+def edit_course_form(request: Request, course_id: int):
+    course = db.get_course_by_id(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    return templates.TemplateResponse("course_form.html", {
+        "request": request,
+        "admin_section": "courses",
+        "course": course,
+        "error": None,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.post("/courses/{course_id}/edit", response_class=HTMLResponse)
+async def update_course_action(request: Request, course_id: int):
+    form_data = await request.form()
+    title = form_data.get("title", "").strip()
+    slug = form_data.get("slug", "").strip()
+    subtitle = form_data.get("subtitle", "").strip()
+    description = form_data.get("description", "").strip()
+    what_you_will_learn = form_data.get("what_you_will_learn", "").strip()
+    target_audience = form_data.get("target_audience", "").strip()
+    instructor_bio = form_data.get("instructor_bio", "").strip()
+    price_raw = form_data.get("price", "0").strip()
+    thumbnail = form_data.get("thumbnail", "").strip()
+    is_published = form_data.get("is_published") is not None
+
+    try:
+        price = max(0, int(price_raw))
+    except ValueError:
+        price = 0
+
+    faq_questions = form_data.getlist("faq_question[]")
+    faq_answers = form_data.getlist("faq_answer[]")
+    faq = []
+    for q, a in zip(faq_questions, faq_answers):
+        if q.strip() and a.strip():
+            faq.append({"question": q.strip(), "answer": a.strip()})
+
+    data = {
+        "title": title,
+        "slug": slug,
+        "subtitle": subtitle,
+        "description": description,
+        "what_you_will_learn": what_you_will_learn,
+        "target_audience": target_audience,
+        "instructor_bio": instructor_bio,
+        "price": price,
+        "thumbnail": thumbnail,
+        "is_published": is_published,
+        "faq": faq
+    }
+
+    try:
+        db.update_course(course_id, data)
+        return RedirectResponse(url="/courses", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        logger.error(f"Error updating course {course_id}: {e}")
+        data["id"] = course_id
+        return templates.TemplateResponse("course_form.html", {
+            "request": request,
+            "admin_section": "courses",
+            "course": data,
+            "error": f"Failed to update course: {e}",
+            "public_base_url": PUBLIC_BASE_URL
+        }, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@admin_app.post("/courses/{course_id}/toggle-publish")
+def toggle_course_publish(course_id: int):
+    try:
+        db.toggle_course_publish_status(course_id)
+    except Exception as e:
+        logger.error(f"Error toggling course publish {course_id}: {e}")
+    return RedirectResponse(url="/courses", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@admin_app.post("/courses/{course_id}/delete")
+def delete_course_action(course_id: int):
+    try:
+        db.delete_course(course_id)
+    except Exception as e:
+        logger.error(f"Error deleting course {course_id}: {e}")
+    return RedirectResponse(url="/courses", status_code=status.HTTP_303_SEE_OTHER)
+
+
+# =============================================================================
+# LESSON MANAGEMENT ROUTES
+# =============================================================================
+
+@admin_app.get("/courses/{course_id}/lessons", response_class=HTMLResponse)
+def list_lessons_admin(request: Request, course_id: int):
+    course = db.get_course_by_id(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    lessons = db.get_all_lessons_admin(course_id)
+    return templates.TemplateResponse("course_lessons.html", {
+        "request": request,
+        "admin_section": "courses",
+        "course": course,
+        "lessons": lessons,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.get("/courses/{course_id}/lessons/new", response_class=HTMLResponse)
+def new_lesson_form(request: Request, course_id: int):
+    course = db.get_course_by_id(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    existing_lessons = db.get_all_lessons_admin(course_id)
+    default_order = len(existing_lessons) + 1
+
+    return templates.TemplateResponse("lesson_form.html", {
+        "request": request,
+        "admin_section": "courses",
+        "course": course,
+        "lesson": None,
+        "default_order": default_order,
+        "questions": [],
+        "error": None,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.post("/courses/{course_id}/lessons/new", response_class=HTMLResponse)
+async def create_lesson_action(request: Request, course_id: int):
+    course = db.get_course_by_id(course_id)
+    if not course:
+        raise HTTPException(status_code=404, detail="Course not found")
+
+    form_data = await request.form()
+    title = form_data.get("title", "").strip()
+    slug = form_data.get("slug", "").strip()
+    order_index = int(form_data.get("order_index", "1") or "1")
+    description = form_data.get("description", "").strip()
+    content_markdown = form_data.get("content_markdown", "")
+    mux_asset_id = form_data.get("mux_asset_id", "").strip()
+    mux_playback_id = form_data.get("mux_playback_id", "").strip()
+    mux_upload_id = form_data.get("mux_upload_id", "").strip()
+    mux_status = form_data.get("mux_status", "none").strip()
+    duration_seconds = int(form_data.get("duration_seconds", "0") or "0")
+    is_published = form_data.get("is_published") is not None
+
+    data = {
+        "course_id": course_id,
+        "title": title,
+        "slug": slug,
+        "order_index": order_index,
+        "description": description,
+        "content_markdown": content_markdown,
+        "mux_asset_id": mux_asset_id,
+        "mux_playback_id": mux_playback_id,
+        "mux_upload_id": mux_upload_id,
+        "mux_status": mux_status,
+        "duration_seconds": duration_seconds,
+        "is_published": is_published
+    }
+
+    try:
+        created = db.create_lesson(data)
+        return RedirectResponse(url=f"/lessons/{created['id']}/edit", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        logger.error(f"Error creating lesson: {e}")
+        return templates.TemplateResponse("lesson_form.html", {
+            "request": request,
+            "admin_section": "courses",
+            "course": course,
+            "lesson": data,
+            "default_order": order_index,
+            "questions": [],
+            "error": f"Failed to create lesson: {e}",
+            "public_base_url": PUBLIC_BASE_URL
+        }, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@admin_app.get("/lessons/{lesson_id}/edit", response_class=HTMLResponse)
+def edit_lesson_form(request: Request, lesson_id: int):
+    lesson = db.get_lesson_by_id(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    course = db.get_course_by_id(lesson["course_id"])
+    questions = db.get_questions_by_lesson(lesson_id)
+    student_responses = db.get_student_responses_for_lesson_admin(lesson_id)
+    responses_by_question = {}
+    for r in student_responses:
+        qid = r["question_id"]
+        if qid not in responses_by_question:
+            responses_by_question[qid] = []
+        responses_by_question[qid].append(r)
+
+    return templates.TemplateResponse("lesson_form.html", {
+        "request": request,
+        "admin_section": "courses",
+        "course": course,
+        "lesson": lesson,
+        "questions": questions,
+        "responses_by_question": responses_by_question,
+        "error": None,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.post("/lessons/{lesson_id}/edit", response_class=HTMLResponse)
+async def update_lesson_action(request: Request, lesson_id: int):
+    lesson = db.get_lesson_by_id(lesson_id)
+    if not lesson:
+        raise HTTPException(status_code=404, detail="Lesson not found")
+
+    course = db.get_course_by_id(lesson["course_id"])
+    form_data = await request.form()
+
+    title = form_data.get("title", "").strip()
+    slug = form_data.get("slug", "").strip()
+    order_index = int(form_data.get("order_index", "1") or "1")
+    description = form_data.get("description", "").strip()
+    content_markdown = form_data.get("content_markdown", "")
+    mux_asset_id = form_data.get("mux_asset_id", "").strip()
+    mux_playback_id = form_data.get("mux_playback_id", "").strip()
+    mux_upload_id = form_data.get("mux_upload_id", "").strip()
+    mux_status = form_data.get("mux_status", "none").strip()
+    duration_seconds = int(form_data.get("duration_seconds", "0") or "0")
+    is_published = form_data.get("is_published") is not None
+
+    data = {
+        "title": title,
+        "slug": slug,
+        "order_index": order_index,
+        "description": description,
+        "content_markdown": content_markdown,
+        "mux_asset_id": mux_asset_id,
+        "mux_playback_id": mux_playback_id,
+        "mux_upload_id": mux_upload_id,
+        "mux_status": mux_status,
+        "duration_seconds": duration_seconds,
+        "is_published": is_published
+    }
+
+    try:
+        db.update_lesson(lesson_id, data)
+        return RedirectResponse(url=f"/courses/{course['id']}/lessons", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        logger.error(f"Error updating lesson {lesson_id}: {e}")
+        data["id"] = lesson_id
+        questions = db.get_questions_by_lesson(lesson_id)
+        return templates.TemplateResponse("lesson_form.html", {
+            "request": request,
+            "admin_section": "courses",
+            "course": course,
+            "lesson": data,
+            "questions": questions,
+            "error": f"Failed to update lesson: {e}",
+            "public_base_url": PUBLIC_BASE_URL
+        }, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@admin_app.post("/lessons/{lesson_id}/delete")
+def delete_lesson_action(lesson_id: int):
+    lesson = db.get_lesson_by_id(lesson_id)
+    if lesson:
+        course_id = lesson["course_id"]
+        db.delete_lesson(lesson_id)
+        return RedirectResponse(url=f"/courses/{course_id}/lessons", status_code=status.HTTP_303_SEE_OTHER)
+    return RedirectResponse(url="/courses", status_code=status.HTTP_303_SEE_OTHER)
+
+
+# =============================================================================
+# QUESTION & ANSWER ROUTES (Q&A)
+# =============================================================================
+
+@admin_app.post("/lessons/{lesson_id}/questions/new")
+async def add_question_action(request: Request, lesson_id: int):
+    form_data = await request.form()
+    question = form_data.get("question", "").strip()
+    answer = form_data.get("answer", "").strip()
+    sort_order = int(form_data.get("sort_order", "0") or "0")
+
+    if question and answer:
+        try:
+            db.create_question(lesson_id, question, answer, sort_order)
+        except Exception as e:
+            logger.error(f"Error adding question to lesson {lesson_id}: {e}")
+
+    return RedirectResponse(url=f"/lessons/{lesson_id}/edit", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@admin_app.post("/questions/{question_id}/delete")
+def delete_question_action(question_id: int):
+    try:
+        deleted = db.delete_question(question_id)
+        if deleted and deleted.get("lesson_id"):
+            return RedirectResponse(url=f"/lessons/{deleted['lesson_id']}/edit", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        logger.error(f"Error deleting question {question_id}: {e}")
+
+    return RedirectResponse(url="/courses", status_code=status.HTTP_303_SEE_OTHER)
+
+
+# =============================================================================
+# MUX DIRECT UPLOADS & STATUS APIS (ADMIN)
+# =============================================================================
+
+@admin_app.post("/admin/api/mux/uploads")
+def api_create_mux_direct_upload():
+    """Initializes direct upload with Mux API configuring signed playback."""
+    result = mux_utils.create_direct_upload()
+    return JSONResponse(content=result)
+
+
+@admin_app.get("/admin/api/mux/status/{upload_id}")
+def api_check_mux_status(upload_id: str):
+    """Polls Mux upload and asset status."""
+    result = mux_utils.check_upload_status(upload_id)
+    return JSONResponse(content=result)
+
+
+# =============================================================================
+# PAYMENT VERIFICATION & ORDERS ROUTES
+# =============================================================================
+
+@admin_app.get("/payments", response_class=HTMLResponse)
+def list_payments_admin(request: Request, status: Optional[str] = "all"):
+    filter_status = status if status in ("pending", "approved", "rejected") else None
+    payments = db.get_payment_submissions_admin(status=filter_status)
+
+    all_payments = db.get_payment_submissions_admin()
+    pending_count = sum(1 for p in all_payments if p["status"] == "pending")
+    approved_count = sum(1 for p in all_payments if p["status"] == "approved")
+    rejected_count = sum(1 for p in all_payments if p["status"] == "rejected")
+    all_count = len(all_payments)
+
+    return templates.TemplateResponse("payments_dashboard.html", {
+        "request": request,
+        "admin_section": "payments",
+        "payments": payments,
+        "current_status": status,
+        "pending_count": pending_count,
+        "approved_count": approved_count,
+        "rejected_count": rejected_count,
+        "all_count": all_count,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.post("/payments/{payment_id}/approve")
+def approve_payment_action(payment_id: int):
+    try:
+        db.approve_payment_submission(payment_id, reviewed_by="Admin")
+    except Exception as e:
+        logger.error(f"Error approving payment {payment_id}: {e}")
+    return RedirectResponse(url="/payments", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@admin_app.post("/payments/{payment_id}/reject")
+def reject_payment_action(payment_id: int):
+    try:
+        db.reject_payment_submission(payment_id, reviewed_by="Admin")
+    except Exception as e:
+        logger.error(f"Error rejecting payment {payment_id}: {e}")
+    return RedirectResponse(url="/payments", status_code=status.HTTP_303_SEE_OTHER)
+
+
+# =============================================================================
+# STUDENT ENROLLMENTS ROUTES
+# =============================================================================
+
+@admin_app.get("/students", response_class=HTMLResponse)
+def list_students_admin(request: Request):
+    try:
+        enrollments = db.get_all_enrollments_admin()
+    except Exception as e:
+        logger.error(f"Error fetching enrollments: {e}")
+        enrollments = []
+
+    return templates.TemplateResponse("students_dashboard.html", {
+        "request": request,
+        "admin_section": "students",
+        "enrollments": enrollments,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.post("/students/{user_id}/courses/{course_id}/grant")
+def grant_student_access_action(user_id: int, course_id: int):
+    try:
+        db.create_or_update_enrollment(user_id, course_id, status="active")
+    except Exception as e:
+        logger.error(f"Error granting access to user {user_id}, course {course_id}: {e}")
+    return RedirectResponse(url="/students", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@admin_app.post("/students/{user_id}/courses/{course_id}/revoke")
+def revoke_student_access_action(user_id: int, course_id: int):
+    try:
+        db.revoke_enrollment(user_id, course_id)
+    except Exception as e:
+        logger.error(f"Error revoking access for user {user_id}, course {course_id}: {e}")
+    return RedirectResponse(url="/students", status_code=status.HTTP_303_SEE_OTHER)
+
 
 
 if __name__ == "__main__":

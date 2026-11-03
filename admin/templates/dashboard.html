@@ -3,6 +3,11 @@
 {% block title %}Dashboard &mdash; MADE FOR NOTHING Admin{% endblock %}
 
 {% block content %}
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+  <h2 style="font-size: 1.2rem; font-weight: 600; margin: 0;">Posts &amp; Research Entries</h2>
+  <a href="/posts/new" class="btn btn-primary btn-sm">+ New Post</a>
+</div>
+
 <form method="GET" action="/" class="filter-bar">
   <div class="filter-group">
     <label for="filter-type" style="font-size: 0.8rem; font-weight: 600;">Type:</label>

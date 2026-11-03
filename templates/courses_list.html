@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block title %}Courses &mdash; MADE FOR NOTHING{% endblock %}
+
+{% block description %}Deliberate, in-depth curriculum and technical video explorations.{% endblock %}
+
+{% block content %}
+<header class="archive-view-header">
+  <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <div class="meta-row" style="margin-bottom: 0.6rem;">
+        <span class="type-badge">courses</span>
+        {% if courses %}
+          <span class="meta-dot">&bull;</span>
+          <span>{{ courses|length }} {{ "curriculum" if courses|length == 1 else "curricula" }}</span>
+        {% endif %}
+      </div>
+      <h1 class="archive-view-title">Courses</h1>
+      <p class="archive-view-desc">Deliberate, technical curriculum designed for deep understanding. Each course includes structured video lectures, marginalia, and detailed questions &amp; answers.</p>
+    </div>
+    {% if current_user %}
+      <div style="align-self: flex-start; padding-top: 0.5rem;">
+        <a href="/courses/dashboard" class="btn-studio-browse">
+          <span>My Studio Dashboard &rarr;</span>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</header>
+
+<section>
+  {% if courses %}
+    <div class="archive-card-grid">
+      {% for course in courses %}
+        <article class="archive-card" style="min-width: 0; max-width: 100%; overflow: hidden;">
+          <div style="min-width: 0; max-width: 100%; overflow: hidden;">
+            <div class="meta-row" style="margin-bottom: 0.75rem;">
+              <span>{{ course.lesson_count or 0 }} {{ "lesson" if course.lesson_count == 1 else "lessons" }}</span>
+              {% if course.total_duration_seconds and course.total_duration_seconds > 0 %}
+                <span class="meta-dot">&bull;</span>
+                <span>{{ (course.total_duration_seconds // 60) }} mins</span>
+              {% endif %}
+              <span class="meta-dot">&bull;</span>
+              <span style="font-family: var(--font-mono); font-weight: 600; color: var(--accent-brand);">
+                {% if course.price == 0 %}
+                  Free
+                {% else %}
+                  &#8377;{{ "{:,}".format(course.price) }}
+                {% endif %}
+              </span>
+            </div>
+
+            <h2 class="archive-card-title" style="overflow-wrap: anywhere; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden;">
+              <a href="/courses/{{ course.slug }}">
+                {{ course.title }}
+              </a>
+            </h2>
+
+            <p class="archive-card-excerpt" style="overflow-wrap: anywhere; -webkit-line-clamp: 3; display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; max-width: 100%;">
+              {{ course.subtitle or course.description[:180] }}
+            </p>
+          </div>
+
+          <div class="archive-card-bottom">
+            <span class="tag" style="text-transform: uppercase;">Self-Paced</span>
+            <a href="/courses/{{ course.slug }}" class="btn-card-explore" style="margin-left: auto;">
+              <span>Explore Syllabus</span>
+              <span class="btn-arrow">&rarr;</span>
+            </a>
+          </div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="empty-state">No courses are published at this time. Check back soon.</p>
+  {% endif %}
+</section>
+{% endblock %}

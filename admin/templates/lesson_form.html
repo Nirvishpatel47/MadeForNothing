@@ -1,0 +1,383 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit Lesson" if lesson else "New Lesson" }} &mdash; Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <div>
+      <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0;">
+        {{ "Edit Lesson: " ~ lesson.title if lesson else "New Lesson" }}
+      </h2>
+      <p style="font-size: 0.85rem; color: var(--admin-muted); margin: 0.2rem 0 0;">
+        Course: <strong>{{ course.title }}</strong>
+      </p>
+    </div>
+    <a href="/courses/{{ course.id }}/lessons" style="font-size: 0.85rem; color: var(--admin-muted); text-decoration: none;">
+      &larr; Back to Lessons
+    </a>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger" style="background: #f8d7da; color: #842029; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+    {{ error }}
+  </div>
+{% endif %}
+
+<form method="POST" action="{{ '/lessons/' ~ lesson.id ~ '/edit' if lesson and lesson.id else '/courses/' ~ course.id ~ '/lessons/new' }}" id="lesson-form">
+
+  <div class="form-grid">
+    
+    <div class="form-main">
+      <div class="form-group">
+        <label for="title" class="form-label">Lesson Title *</label>
+        <input type="text" id="title" name="title" class="form-input" value="{{ lesson.title if lesson else '' }}" required placeholder="e.g. 01. The Impossibility of Distributed Agreement">
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 120px; gap: 1rem;">
+        <div class="form-group">
+          <label for="slug" class="form-label">URL Slug *</label>
+          <input type="text" id="slug" name="slug" class="form-input" value="{{ lesson.slug if lesson else '' }}" required placeholder="e.g. lesson-01">
+        </div>
+        <div class="form-group">
+          <label for="order_index" class="form-label">Order *</label>
+          <input type="number" id="order_index" name="order_index" class="form-input" value="{{ lesson.order_index if lesson else default_order }}" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Brief Summary / Deck</label>
+        <textarea id="description" name="description" class="form-textarea" rows="2" placeholder="One or two sentences summarizing the central inquiry of this lecture.">{{ lesson.description if lesson else '' }}</textarea>
+      </div>
+
+      <!-- MUX VIDEO INTEGRATION BOX -->
+      <div class="video-admin-card" style="background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 4px; padding: 1.25rem; margin-bottom: 1.75rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--admin-border); padding-bottom: 0.5rem;">
+          <h4 style="margin: 0; font-size: 0.95rem; display: flex; align-items: center; gap: 0.5rem;">
+            <span>Mux Video Lecture</span>
+            <span class="admin-badge" style="background: #0284c7;">Signed Playback Only</span>
+          </h4>
+          <span id="mux-status-badge" class="status-badge {% if lesson and lesson.mux_status == 'ready' %}status-published{% else %}status-draft{% endif %}">
+            Status: {{ lesson.mux_status if lesson and lesson.mux_status else 'none' }}
+          </span>
+        </div>
+
+        <p style="font-size: 0.8rem; color: var(--admin-muted); margin-bottom: 1rem;">
+          Videos are uploaded directly from your browser to Mux storage without touching the server. All video assets are strictly signed (never public).
+        </p>
+
+        <!-- Direct Upload UI -->
+        <div style="background: var(--admin-bg); padding: 1rem; border-radius: 4px; border: 1px dashed var(--admin-border); margin-bottom: 1rem;">
+          <label style="display: block; font-weight: 600; font-size: 0.8rem; margin-bottom: 0.4rem;">Direct Video Upload to Mux:</label>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <input type="file" id="video-file-picker" accept="video/mp4,video/quicktime,video/webm" style="font-size: 0.82rem;">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-start-upload" onclick="startDirectUpload()">
+              Upload Video to Mux
+            </button>
+          </div>
+
+          <!-- Upload Progress Bar -->
+          <div id="upload-progress-container" style="display: none; margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.75rem; margin-bottom: 0.25rem;">
+              <span id="upload-progress-text">Uploading to Mux...</span>
+              <span id="upload-progress-percent">0%</span>
+            </div>
+            <div style="width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden;">
+              <div id="upload-progress-bar" style="width: 0%; height: 100%; background: #0284c7; transition: width 0.15s ease;"></div>
+            </div>
+            <div id="upload-status-msg" style="font-size: 0.75rem; color: var(--admin-muted); margin-top: 0.4rem;"></div>
+          </div>
+        </div>
+
+        <!-- Mux Metadata Inputs (Autofilled or Manual) -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label for="mux_playback_id" class="form-label" style="font-size: 0.75rem;">Signed Playback ID</label>
+            <input type="text" id="mux_playback_id" name="mux_playback_id" class="form-input" style="font-family: var(--font-mono); font-size: 0.8rem;" value="{{ lesson.mux_playback_id if lesson else '' }}" placeholder="Generated upon upload">
+          </div>
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label for="mux_asset_id" class="form-label" style="font-size: 0.75rem;">Mux Asset ID</label>
+            <input type="text" id="mux_asset_id" name="mux_asset_id" class="form-input" style="font-family: var(--font-mono); font-size: 0.8rem;" value="{{ lesson.mux_asset_id if lesson else '' }}" placeholder="Mux asset identifier">
+          </div>
+        </div>
+
+        <input type="hidden" id="mux_upload_id" name="mux_upload_id" value="{{ lesson.mux_upload_id if lesson else '' }}">
+        <input type="hidden" id="mux_status" name="mux_status" value="{{ lesson.mux_status if lesson else 'none' }}">
+      </div>
+
+      <!-- Content Markdown -->
+      <div class="form-group">
+        <label for="content_markdown" class="form-label">Lecture Notes &amp; Marginalia (Markdown)</label>
+        <textarea id="content_markdown" name="content_markdown" class="form-textarea" rows="12" placeholder="Full lecture marginalia, architectural diagrams, formulas, and references.">{{ lesson.content_markdown if lesson else '' }}</textarea>
+      </div>
+
+    </div>
+
+    <!-- Sidebar Settings -->
+    <div class="form-sidebar">
+      <div class="meta-box" style="background: var(--admin-surface); border: 1px solid var(--admin-border); padding: 1.25rem; border-radius: 4px;">
+        <h4 style="margin: 0 0 1rem; font-size: 0.95rem;">Unit Configuration</h4>
+
+        <div class="form-group">
+          <label for="duration_seconds" class="form-label">Duration (Seconds)</label>
+          <input type="number" id="duration_seconds" name="duration_seconds" class="form-input" value="{{ lesson.duration_seconds if lesson else 0 }}">
+          <span style="font-size: 0.72rem; color: var(--admin-muted);">Autofilled by Mux upon readiness, or enter manually.</span>
+        </div>
+
+        <div class="form-check" style="margin-top: 1.25rem;">
+          <input type="checkbox" id="is_published" name="is_published" {% if not lesson or lesson.is_published %}checked{% endif %}>
+          <label for="is_published" style="font-size: 0.85rem; font-weight: 600;">Published Lesson</label>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            {{ "Save Changes" if lesson else "Create Lesson" }}
+          </button>
+          <a href="/courses/{{ course.id }}/lessons" class="btn btn-secondary" style="width: 100%; text-align: center;">Cancel</a>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</form>
+
+<!-- CONCEPT VERIFICATION CHECKPOINTS (INSTRUCTOR INQUIRY) SECTION -->
+{% if lesson and lesson.id %}
+  <div style="margin-top: 3rem; border-top: 1px solid var(--admin-border); padding-top: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+      <div>
+        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700;">Lecture Checkpoint &amp; Concept Questions</h3>
+        <p style="margin: 0.2rem 0 0; font-size: 0.82rem; color: var(--admin-muted);">
+          Questions you ask students after watching the lecture to verify if the course worked as intended and test their comprehension before they reveal your model explanation.
+        </p>
+      </div>
+    </div>
+
+    <!-- Existing Checkpoint List -->
+    {% if questions %}
+      <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem;">
+        {% for q in questions %}
+          <div style="background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 4px; padding: 1rem 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.4rem;">
+              <span style="font-family: var(--font-mono); font-size: 0.75rem; font-weight: 600; color: #0284c7;">
+                Checkpoint Q{{ loop.index }} (Sort: {{ q.sort_order }})
+              </span>
+              <form method="POST" action="/questions/{{ q.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this checkpoint question?');">
+                <button type="submit" class="btn btn-danger btn-sm" style="padding: 0.15rem 0.5rem; font-size: 0.72rem;">Delete</button>
+              </form>
+            </div>
+            <div style="font-weight: 600; font-size: 0.92rem; margin-bottom: 0.4rem;">
+              {{ q.question }}
+            </div>
+            <div style="font-size: 0.85rem; color: var(--admin-muted); white-space: pre-wrap; line-height: 1.5; background: var(--admin-bg); padding: 0.6rem 0.75rem; border-radius: 3px; border-left: 2px solid #0284c7;">
+              <strong style="display: block; font-size: 0.72rem; text-transform: uppercase; font-family: var(--font-mono); color: #0284c7; margin-bottom: 0.2rem;">Model Explanation:</strong>
+              {{ q.answer }}
+            </div>
+
+            <!-- Student Submissions & Comprehension Ledger -->
+            {% set q_resps = responses_by_question.get(q.id, []) if responses_by_question else [] %}
+            <div style="margin-top: 1rem; border-top: 1px dashed var(--admin-border); padding-top: 0.85rem;">
+              <details style="cursor: pointer;" {% if q_resps %}open{% endif %}>
+                <summary style="font-family: var(--font-mono); font-size: 0.78rem; font-weight: 600; color: #0284c7; outline: none;">
+                  <span>Student Submissions &amp; Efficacy Feedback ({{ q_resps|length }})</span>
+                </summary>
+                <div style="margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.65rem;">
+                  {% if q_resps %}
+                    {% for resp in q_resps %}
+                      <div style="background: var(--admin-bg); border: 1px solid var(--admin-border); border-radius: 4px; padding: 0.75rem 1rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem; flex-wrap: wrap; gap: 0.5rem;">
+                          <div style="font-size: 0.82rem; font-weight: 600;">
+                            {{ resp.user_name }} <span style="font-weight: 400; color: var(--admin-muted); font-size: 0.75rem;">({{ resp.user_email }})</span>
+                          </div>
+                          <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            {% if resp.self_assessment == 'pass' %}
+                              <span style="background: rgba(16, 185, 129, 0.15); color: #059669; font-size: 0.7rem; font-family: var(--font-mono); padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600;">&#10003; Mastered</span>
+                            {% elif resp.self_assessment == 'review' %}
+                              <span style="background: rgba(245, 158, 11, 0.15); color: #d97706; font-size: 0.7rem; font-family: var(--font-mono); padding: 0.1rem 0.4rem; border-radius: 3px; font-weight: 600;">? Needs Review</span>
+                            {% endif %}
+                            <span style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--admin-muted);">
+                              {{ resp.updated_at.strftime('%Y-%m-%d %H:%M') if resp.updated_at else '' }}
+                            </span>
+                          </div>
+                        </div>
+                        <div style="font-size: 0.85rem; line-height: 1.5; color: var(--text); white-space: pre-wrap; background: var(--admin-surface); padding: 0.6rem 0.75rem; border-radius: 3px; border-left: 2px solid #64748b;">
+                          <span style="display: block; font-size: 0.68rem; font-family: var(--font-mono); text-transform: uppercase; color: var(--admin-muted); margin-bottom: 0.2rem;">Student's Recorded Reasoning:</span>
+                          {{ resp.student_answer }}
+                        </div>
+                      </div>
+                    {% endfor %}
+                  {% else %}
+                    <p style="font-size: 0.78rem; color: var(--admin-muted); margin: 0; padding: 0.4rem 0;">
+                      No student submissions recorded yet for this checkpoint.
+                    </p>
+                  {% endif %}
+                </div>
+              </details>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <p style="font-size: 0.85rem; color: var(--admin-muted); margin-bottom: 1.5rem;">
+        No checkpoint questions added yet for this lesson. Add one below to prompt students upon video completion.
+      </p>
+    {% endif %}
+
+    <!-- Add Checkpoint Question Form -->
+    <div style="background: var(--admin-surface); border: 1px solid var(--admin-border); border-radius: 4px; padding: 1.25rem;">
+      <h4 style="margin: 0 0 1rem; font-size: 0.95rem;">+ Add Concept Checkpoint Question</h4>
+      <form method="POST" action="/lessons/{{ lesson.id }}/questions/new">
+        <div class="form-group">
+          <label for="qa_question" class="form-label" style="font-size: 0.75rem;">Question Asked to Student (Comprehension Inquiry)</label>
+          <input type="text" id="qa_question" name="question" class="form-input" required placeholder="e.g. Why does Raft require a majority quorum instead of simple plurality for commit?">
+        </div>
+
+        <div class="form-group">
+          <label for="qa_answer" class="form-label" style="font-size: 0.75rem;">Instructor's Model Explanation / Breakdown (Revealed after student reflects)</label>
+          <textarea id="qa_answer" name="answer" class="form-textarea" rows="3" required placeholder="Provide the core principle, mathematical proof, or architectural nuance the student should compare their thought against..."></textarea>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <label for="qa_sort_order" class="form-label" style="margin: 0; font-size: 0.75rem;">Sort Order:</label>
+            <input type="number" id="qa_sort_order" name="sort_order" class="form-input" style="width: 70px;" value="{{ (questions|length) + 1 }}">
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm">+ Save Checkpoint Question</button>
+        </div>
+      </form>
+    </div>
+  </div>
+{% endif %}
+
+<script>
+// =============================================================================
+// MUX DIRECT UPLOAD JAVASCRIPT
+// =============================================================================
+function startDirectUpload() {
+  var filePicker = document.getElementById('video-file-picker');
+  if (!filePicker.files || filePicker.files.length === 0) {
+    alert('Please select a video file first.');
+    return;
+  }
+
+  var file = filePicker.files[0];
+  var btn = document.getElementById('btn-start-upload');
+  var progContainer = document.getElementById('upload-progress-container');
+  var progBar = document.getElementById('upload-progress-bar');
+  var progText = document.getElementById('upload-progress-text');
+  var progPct = document.getElementById('upload-progress-percent');
+  var statusMsg = document.getElementById('upload-status-msg');
+
+  btn.disabled = true;
+  progContainer.style.display = 'block';
+  progText.innerText = 'Creating direct upload link with Mux...';
+  statusMsg.innerText = 'Requesting authenticated Direct Upload URL from server...';
+
+  // 1. Ask backend for Direct Upload URL
+  fetch('/admin/api/mux/uploads', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(function(res) {
+    if (!res.ok) throw new Error('Failed to create Mux direct upload.');
+    return res.json();
+  })
+  .then(function(data) {
+    if (!data.upload_url) {
+      throw new Error(data.error || 'Server did not return a Mux upload URL. Check MUX_TOKEN_ID/SECRET.');
+    }
+
+    var uploadUrl = data.upload_url;
+    var uploadId = data.upload_id;
+
+    document.getElementById('mux_upload_id').value = uploadId;
+    document.getElementById('mux_status').value = 'uploading';
+    document.getElementById('mux-status-badge').innerText = 'Status: uploading';
+
+    progText.innerText = 'Uploading ' + file.name + ' directly to Mux...';
+    statusMsg.innerText = 'Streaming bytes directly to Mux...';
+
+    // 2. Direct PUT to Mux
+    var xhr = new XMLHttpRequest();
+    xhr.open('PUT', uploadUrl, true);
+
+    xhr.upload.onprogress = function(e) {
+      if (e.lengthComputable) {
+        var percentComplete = Math.round((e.loaded / e.total) * 100);
+        progBar.style.width = percentComplete + '%';
+        progPct.innerText = percentComplete + '%';
+      }
+    };
+
+    xhr.onload = function() {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        progText.innerText = 'Upload Complete! Processing on Mux...';
+        progBar.style.backgroundColor = '#10b981';
+        statusMsg.innerText = 'Video uploaded successfully. Polling Mux for asset preparation...';
+        
+        // 3. Start polling for Mux asset readiness
+        pollMuxStatus(uploadId);
+      } else {
+        throw new Error('Mux Direct Upload failed with HTTP status: ' + xhr.status);
+      }
+    };
+
+    xhr.onerror = function() {
+      throw new Error('Network error during upload to Mux.');
+    };
+
+    xhr.send(file);
+  })
+  .catch(function(err) {
+    console.error('Upload error:', err);
+    alert('Upload failed: ' + err.message);
+    btn.disabled = false;
+    statusMsg.innerText = 'Error: ' + err.message;
+  });
+}
+
+function pollMuxStatus(uploadId) {
+  var statusMsg = document.getElementById('upload-status-msg');
+  var attempts = 0;
+  var maxAttempts = 60; // 60 * 3s = 3 minutes
+
+  var interval = setInterval(function() {
+    attempts++;
+    fetch('/admin/api/mux/status/' + uploadId)
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.status === 'ready') {
+          clearInterval(interval);
+          statusMsg.innerHTML = '<strong style="color: #10b981;">✓ Video Ready on Mux!</strong> Playback ID and Duration saved.';
+          document.getElementById('mux_playback_id').value = data.playback_id || '';
+          document.getElementById('mux_asset_id').value = data.asset_id || '';
+          document.getElementById('mux_status').value = 'ready';
+          document.getElementById('mux-status-badge').innerText = 'Status: ready';
+          document.getElementById('mux-status-badge').className = 'status-badge status-published';
+          if (data.duration) {
+            document.getElementById('duration_seconds').value = data.duration;
+          }
+          document.getElementById('btn-start-upload').disabled = false;
+        } else if (data.status === 'error') {
+          clearInterval(interval);
+          statusMsg.innerText = 'Mux processing errored: ' + (data.error || 'Unknown error');
+          document.getElementById('btn-start-upload').disabled = false;
+        } else {
+          statusMsg.innerText = 'Mux video processing in progress (' + (data.status || 'preparing') + ')... ' + (attempts * 3) + 's';
+        }
+
+        if (attempts >= maxAttempts) {
+          clearInterval(interval);
+          statusMsg.innerText = 'Processing is taking longer than usual. You can save and check back shortly.';
+          document.getElementById('btn-start-upload').disabled = false;
+        }
+      })
+      .catch(function(e) {
+        console.warn('Status poll error:', e);
+      });
+  }, 3000);
+}
+</script>
+{% endblock %}

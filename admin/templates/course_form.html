@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+
+{% block title %}{{ "Edit Course" if course else "New Course" }} &mdash; Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0;">
+      {{ "Edit Course: " ~ course.title if course else "Create New Course" }}
+    </h2>
+    <a href="/courses" style="font-size: 0.85rem; color: var(--admin-muted); text-decoration: none;">&larr; Back to Courses</a>
+  </div>
+</div>
+
+{% if error %}
+  <div class="alert alert-danger" style="background: #f8d7da; color: #842029; padding: 0.75rem 1rem; border-radius: 4px; margin-bottom: 1.5rem;">
+    {{ error }}
+  </div>
+{% endif %}
+
+<form method="POST" action="{{ '/courses/' ~ course.id ~ '/edit' if course and course.id else '/courses/new' }}">
+
+  <div class="form-grid">
+    
+    <div class="form-main">
+      <div class="form-group">
+        <label for="title" class="form-label">Course Title *</label>
+        <input type="text" id="title" name="title" class="form-input" value="{{ course.title if course else '' }}" required placeholder="e.g. Distributed Consensus from First Principles">
+      </div>
+
+      <div class="form-group">
+        <label for="slug" class="form-label">URL Slug *</label>
+        <input type="text" id="slug" name="slug" class="form-input" value="{{ course.slug if course else '' }}" required placeholder="e.g. distributed-consensus">
+      </div>
+
+      <div class="form-group">
+        <label for="subtitle" class="form-label">Subtitle / Short Deck</label>
+        <input type="text" id="subtitle" name="subtitle" class="form-input" value="{{ course.subtitle if course else '' }}" placeholder="A rigorous inquiry into fault tolerance and state machine replication.">
+      </div>
+
+      <div class="form-group">
+        <label for="description" class="form-label">Full Course Overview (Markdown)</label>
+        <textarea id="description" name="description" class="form-textarea" rows="8" placeholder="Detailed explanation of the syllabus, theoretical foundations, and context.">{{ course.description if course else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="what_you_will_learn" class="form-label">What You Will Learn (Markdown / Bullets)</label>
+        <textarea id="what_you_will_learn" name="what_you_will_learn" class="form-textarea" rows="5" placeholder="- Formal proof of the FLP impossibility result&#10;- Raft protocol leadership election and log matching&#10;- Byzantine Fault Tolerant state machines">{{ course.what_you_will_learn if course else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="target_audience" class="form-label">Target Audience (Markdown)</label>
+        <textarea id="target_audience" name="target_audience" class="form-textarea" rows="3" placeholder="Systems engineers, distributed storage architects, and researchers.">{{ course.target_audience if course else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="instructor_bio" class="form-label">Instructor Notes &amp; Bio (Markdown)</label>
+        <textarea id="instructor_bio" name="instructor_bio" class="form-textarea" rows="3" placeholder="Background notes, recommended prerequisites, and lab environment setup.">{{ course.instructor_bio if course else '' }}</textarea>
+      </div>
+
+      <!-- FAQ Section -->
+      <div class="form-group" style="margin-top: 2rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+          <label class="form-label" style="margin: 0;">Frequently Asked Questions</label>
+          <button type="button" class="btn btn-secondary btn-sm" onclick="addFaqRow()">+ Add FAQ Item</button>
+        </div>
+
+        <div id="faq-container">
+          {% if course and course.faq and course.faq|length > 0 %}
+            {% for item in course.faq %}
+              <div class="faq-row" style="background: var(--admin-surface); border: 1px solid var(--admin-border); padding: 0.75rem; border-radius: 4px; margin-bottom: 0.75rem;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+                  <span style="font-weight: 600; font-size: 0.75rem;">Question &amp; Answer</span>
+                  <button type="button" class="btn btn-danger btn-sm" style="padding: 0.1rem 0.4rem; font-size: 0.7rem;" onclick="this.closest('.faq-row').remove()">Remove</button>
+                </div>
+                <input type="text" name="faq_question[]" class="form-input" style="margin-bottom: 0.4rem;" value="{{ item.question }}" placeholder="Question">
+                <textarea name="faq_answer[]" class="form-textarea" rows="2" placeholder="Answer">{{ item.answer }}</textarea>
+              </div>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Sidebar Settings -->
+    <div class="form-sidebar">
+      <div class="meta-box" style="background: var(--admin-surface); border: 1px solid var(--admin-border); padding: 1.25rem; border-radius: 4px;">
+        <h4 style="margin: 0 0 1rem; font-size: 0.95rem;">Publishing &amp; Pricing</h4>
+
+        <div class="form-group">
+          <label for="price" class="form-label">Price (INR &#8377;) *</label>
+          <input type="number" id="price" name="price" class="form-input" value="{{ course.price if course else 0 }}" min="0" required>
+          <span style="font-size: 0.72rem; color: var(--admin-muted);">Set to 0 for free open access.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="thumbnail" class="form-label">Thumbnail URL</label>
+          <input type="text" id="thumbnail" name="thumbnail" class="form-input" value="{{ course.thumbnail if course else '' }}" placeholder="/static/images/course.png">
+        </div>
+
+        <div class="form-check" style="margin-top: 1.25rem;">
+          <input type="checkbox" id="is_published" name="is_published" {% if course and course.is_published %}checked{% endif %}>
+          <label for="is_published" style="font-size: 0.85rem; font-weight: 600;">Published Publicly</label>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
+          <button type="submit" class="btn btn-primary" style="width: 100%;">
+            {{ "Save Changes" if course else "Create Course" }}
+          </button>
+          <a href="/courses" class="btn btn-secondary" style="width: 100%; text-align: center;">Cancel</a>
+        </div>
+
+        {% if course and course.id %}
+          <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--admin-border);">
+            <a href="/courses/{{ course.id }}/lessons" class="btn btn-secondary" style="width: 100%; text-align: center; font-weight: 600;">
+              Manage Lessons &rarr;
+            </a>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+</form>
+
+<script>
+function addFaqRow() {
+  var container = document.getElementById('faq-container');
+  var div = document.createElement('div');
+  div.className = 'faq-row';
+  div.style.cssText = 'background: var(--admin-surface); border: 1px solid var(--admin-border); padding: 0.75rem; border-radius: 4px; margin-bottom: 0.75rem;';
+  div.innerHTML = `
+    <div style="display: flex; justify-content: space-between; margin-bottom: 0.4rem;">
+      <span style="font-weight: 600; font-size: 0.75rem;">Question &amp; Answer</span>
+      <button type="button" class="btn btn-danger btn-sm" style="padding: 0.1rem 0.4rem; font-size: 0.7rem;" onclick="this.closest('.faq-row').remove()">Remove</button>
+    </div>
+    <input type="text" name="faq_question[]" class="form-input" style="margin-bottom: 0.4rem;" placeholder="Question" required>
+    <textarea name="faq_answer[]" class="form-textarea" rows="2" placeholder="Answer" required></textarea>
+  `;
+  container.appendChild(div);
+}
+</script>
+{% endblock %}

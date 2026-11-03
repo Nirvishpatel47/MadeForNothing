@@ -1,0 +1,669 @@
+{% extends "base.html" %}
+
+{% block title %}{{ lesson.title }} &mdash; {{ course.title }} &bull; MADE FOR NOTHING{% endblock %}
+
+{% block description %}{{ lesson.description or course.title }}{% endblock %}
+
+{% block container_class %}lesson-page-container{% endblock %}
+
+{% block content %}
+<!-- Include Mux Player Custom Element -->
+<script src="https://cdn.jsdelivr.net/npm/@mux/mux-player" defer></script>
+
+<div class="lesson-theater-layout">
+
+  <!-- Minimalist Ambient Top Navigation Bar -->
+  <nav class="lesson-top-bar" aria-label="Lesson navigation">
+    <div class="top-bar-left">
+      <a href="/courses/{{ course.slug }}" class="lesson-back-crumb" title="Return to Course Syllabus">
+        <span class="crumb-arrow">&larr;</span>
+        <span class="crumb-course-title">{{ course.title }}</span>
+      </a>
+      <span class="meta-dot">&bull;</span>
+      <span class="lesson-unit-counter">Unit {{ "%02d" % lesson_order_index }} of {{ "%02d" % all_lessons|length }}</span>
+    </div>
+
+    <div class="top-bar-right">
+      <button type="button" class="btn-drawer-toggle" id="sidebar-toggle" aria-expanded="false" aria-controls="lesson-navigator-sidebar">
+        <span class="drawer-icon">&#9776;</span>
+        <span>Curriculum ({{ all_lessons|length }})</span>
+      </button>
+      <a href="/courses/dashboard" class="btn-top-dashboard">
+        <span>Studio Dashboard</span>
+        <span class="btn-arrow">&rarr;</span>
+      </a>
+    </div>
+  </nav>
+
+  <!-- The Proportional Theater Grid (68–70% Video Stage / 30–32% Navigator) -->
+  <div class="lesson-theater-grid">
+    
+    <!-- Left Column: Video Lecture Stage & Primary Learning Stream -->
+    <main class="lesson-stage-main">
+
+      <!-- 16:9 Cinema Video Stage (First, YouTube Proportions & Priority) -->
+      <section class="stage-video-frame" aria-label="Video lecture player">
+        {% if lesson.mux_playback_id %}
+          <div class="cinema-player-box" id="video-container">
+            <div class="player-loading-backdrop" id="video-loading">
+              <div class="editorial-spinner"></div>
+              <span class="loading-label">Authorizing signed secure stream...</span>
+            </div>
+            <!-- Player dynamically mounted via signed token fetch -->
+            <div id="player-mount"></div>
+          </div>
+        {% else %}
+          <div class="cinema-placeholder-box">
+            <div class="placeholder-glyph">&#9737;</div>
+            <div class="placeholder-caption">
+              <strong>Video Lecture in Final Processing</strong>
+              <p>Asset encoding is completing or this unit is centered on technical marginalia and proofs below.</p>
+            </div>
+          </div>
+        {% endif %}
+      </section>
+
+      <!-- Unit Title Masthead (Below Video, YouTube Watch Style) -->
+      <header class="stage-unit-header">
+        <div class="unit-kicker-row">
+          <span class="unit-kicker">Unit {{ "%02d" % lesson_order_index }}</span>
+          {% if lesson.duration_seconds and lesson.duration_seconds > 0 %}
+            <span class="meta-dot">&bull;</span>
+            <span class="unit-duration-kicker">{{ (lesson.duration_seconds // 60) }} minutes</span>
+          {% endif %}
+        </div>
+        <h1 class="stage-unit-title">{{ lesson.title }}</h1>
+        {% if lesson.description %}
+          <p class="stage-unit-deck">{{ lesson.description }}</p>
+        {% endif %}
+      </header>
+
+      <!-- Unit Action Controller Bar -->
+      <div class="unit-controller-bar">
+        <button 
+          type="button" 
+          id="btn-toggle-complete" 
+          class="btn-unit-complete {% if is_completed %}is-completed{% endif %}"
+          onclick="toggleLessonCompletion()"
+        >
+          <span id="complete-icon" class="complete-glyph">{% if is_completed %}&#10003;{% else %}&#9675;{% endif %}</span>
+          <span id="complete-text">{% if is_completed %}Unit Mastered &bull; Complete{% else %}Mark Unit as Completed{% endif %}</span>
+        </button>
+
+        <div class="unit-pagination-pills">
+          {% if prev_lesson %}
+            <a href="/courses/{{ course.slug }}/lessons/{{ prev_lesson.id }}" class="btn-paging-pill" title="{{ prev_lesson.title }}">
+              &larr; Previous Unit
+            </a>
+          {% endif %}
+          {% if next_lesson %}
+            <a href="/courses/{{ course.slug }}/lessons/{{ next_lesson.id }}" class="btn-paging-pill btn-paging-accent" title="{{ next_lesson.title }}">
+              Next Unit &rarr;
+            </a>
+          {% else %}
+            <a href="/courses/dashboard" class="btn-paging-pill btn-paging-accent">
+              Curriculum Finished &bull; Dashboard &rarr;
+            </a>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- YouTube-Style Collapsible Course Modules Playlist (Mobile & Tablet) -->
+      {% set completed_count = all_lessons|selectattr('completed')|list|length %}
+      {% set nav_pct = ((completed_count / (all_lessons|length)) * 100)|round|int if all_lessons|length > 0 else 0 %}
+      <section class="yt-mobile-playlist" id="yt-mobile-playlist" aria-label="Course Modules Playlist">
+        <button type="button" class="yt-playlist-header-btn" id="yt-playlist-toggle" onclick="toggleMobilePlaylist()" aria-expanded="false">
+          <div class="yt-playlist-header-left">
+            <div class="yt-playlist-kicker-row">
+              <span class="yt-playlist-badge">&#9654; Course Modules</span>
+              <span class="yt-playlist-counter">Unit {{ "%02d" % lesson_order_index }} / {{ "%02d" % all_lessons|length }}</span>
+              <span class="yt-playlist-pct">{{ nav_pct }}% Done</span>
+            </div>
+            <div class="yt-playlist-upnext">
+              {% if next_lesson %}
+                Next up: <strong>{{ next_lesson.title }}</strong>
+              {% else %}
+                Current: <strong>{{ lesson.title }}</strong> (Final Unit)
+              {% endif %}
+            </div>
+          </div>
+          <div class="yt-playlist-header-right">
+            <span class="yt-playlist-toggle-label" id="yt-playlist-toggle-label">Modules</span>
+            <span class="yt-playlist-chevron" id="yt-playlist-chevron">&#9662;</span>
+          </div>
+        </button>
+
+        <div class="yt-playlist-body" id="yt-playlist-body">
+          <div class="navigator-progress-rail" style="margin: 0 1rem 0.65rem;">
+            <div class="navigator-progress-fill" style="width: {{ nav_pct }}%;"></div>
+          </div>
+          <ol class="yt-playlist-list">
+            {% for l in all_lessons %}
+              <li class="navigator-unit-item {% if l.id == lesson.id %}is-active-unit{% endif %} {% if l.completed %}is-completed-unit{% endif %}">
+                <a href="/courses/{{ course.slug }}/lessons/{{ l.id }}" class="navigator-unit-link">
+                  <span class="unit-status-indicator">
+                    {% if l.completed %}
+                      <span class="glyph-check" title="Mastered">&#10003;</span>
+                    {% elif l.id == lesson.id %}
+                      <span class="glyph-current" title="Current unit">&#9654;</span>
+                    {% else %}
+                      <span class="glyph-upcoming">{{ "%02d" % loop.index }}</span>
+                    {% endif %}
+                  </span>
+                  <span class="unit-entry-body">
+                    <span class="unit-entry-title">{{ "%02d" % loop.index }}. {{ l.title }}</span>
+                    {% if l.duration_seconds and l.duration_seconds > 0 %}
+                      <span class="unit-entry-runtime">{{ (l.duration_seconds // 60) }} min</span>
+                    {% endif %}
+                  </span>
+                </a>
+              </li>
+            {% endfor %}
+          </ol>
+        </div>
+      </section>
+
+      <!-- Technical Marginalia & Lecture Notes -->
+      {% if rendered_content %}
+        <article class="stage-marginalia-block markdown-body">
+          <h2 class="marginalia-section-kicker">Technical Marginalia &amp; Lecture Notes</h2>
+          {{ rendered_content|safe }}
+        </article>
+      {% endif %}
+
+      <!-- Active Concept Verification Checkpoints (Instructor Inquiries) -->
+      {% if questions and questions|length > 0 %}
+        <section class="checkpoint-verification-section" id="checkpoint-section" aria-label="Comprehension Checkpoint">
+          <div class="checkpoint-meta-row">
+            <span class="checkpoint-kicker">&#9670; Concept Verification Checkpoint</span>
+            <span class="meta-dot">&bull;</span>
+            <span class="checkpoint-question-count">
+              {{ questions|length }} {{ "Question" if questions|length == 1 else "Questions" }} from Instructor
+            </span>
+          </div>
+
+          <h2 class="checkpoint-headline">Did You Grasp This Lecture? Concept Check</h2>
+          <p class="checkpoint-subdeck">
+            The instructor asks these questions to test if the lecture's core mechanisms worked as intended. Formulate your answer first in your mind or scratchpad, then reveal the instructor's breakdown to compare.
+          </p>
+
+          <div class="checkpoint-cards-stack">
+            {% for q in questions %}
+              {% set resp = student_responses.get(q.id) if student_responses else None %}
+              {% set has_submitted = (resp is not none and resp.student_answer) %}
+              <div class="checkpoint-inquiry-card" id="checkpoint-card-{{ q.id }}">
+                <div class="inquiry-header-row">
+                  <span class="inquiry-num-pill">Q{{ "%02d" % loop.index }}</span>
+                  <span class="inquiry-label">Comprehension Inquiry</span>
+                  {% if has_submitted %}
+                    <span class="inquiry-status-badge submitted" id="status-badge-{{ q.id }}">&#10003; Answer Saved to Course DB</span>
+                  {% else %}
+                    <span class="inquiry-status-badge pending" id="status-badge-{{ q.id }}">&#9675; Response Required</span>
+                  {% endif %}
+                </div>
+
+                <div class="inquiry-question-text">
+                  {{ q.question }}
+                </div>
+
+                <div class="inquiry-guidance">
+                  Submit your reasoned explanation below. Your answers are stored directly in the database so the instructor can inspect comprehension and improve course quality. Once submitted, the model explanation unlocks.
+                </div>
+
+                <!-- Student Reflection Scratchpad -->
+                <div class="inquiry-scratchpad-wrapper">
+                  <textarea 
+                    class="inquiry-scratchpad-input checkpoint-scratchpad" 
+                    id="scratchpad-{{ q.id }}" 
+                    placeholder="Formulate your reasoning and answer here to submit to the instructor..."
+                    data-question-id="{{ q.id }}"
+                    rows="3"
+                  >{{ resp.student_answer if has_submitted else '' }}</textarea>
+                  <span class="scratchpad-autosave-indicator" id="saved-indicator-{{ q.id }}" style="display: none;">Draft saved</span>
+                </div>
+
+                <div class="inquiry-actions-row">
+                  <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                    <button 
+                      type="button" 
+                      class="btn-submit-reasoning {% if has_submitted %}is-submitted{% endif %}" 
+                      id="btn-submit-{{ q.id }}"
+                      onclick="submitCheckpointAnswer({{ q.id }})"
+                    >
+                      <span id="btn-submit-icon-{{ q.id }}">{% if has_submitted %}&#10003;{% else %}&rarr;{% endif %}</span>
+                      <span id="btn-submit-text-{{ q.id }}">{% if has_submitted %}Update Submitted Answer{% else %}Submit Answer &amp; Reveal Instructor's Breakdown{% endif %}</span>
+                    </button>
+
+                    <button 
+                      type="button" 
+                      class="btn-reveal-breakdown" 
+                      id="btn-reveal-{{ q.id }}"
+                      onclick="toggleCheckpointSolution({{ q.id }})"
+                      style="display: {% if has_submitted %}inline-flex{% else %}none{% endif %};"
+                    >
+                      <span id="reveal-icon-{{ q.id }}">&#9660;</span>
+                      <span id="reveal-label-{{ q.id }}">Toggle Model Explanation</span>
+                    </button>
+                  </div>
+
+                  <span id="assessment-badge-{{ q.id }}" class="inquiry-assessment-tag {% if resp and resp.self_assessment == 'pass' %}assessment-pass{% elif resp and resp.self_assessment == 'review' %}assessment-review{% endif %}" style="display: {% if resp and resp.self_assessment %}inline-flex{% else %}none{% endif %};">
+                    {% if resp and resp.self_assessment == 'pass' %}
+                      &#10003; Mastered
+                    {% elif resp and resp.self_assessment == 'review' %}
+                      ? Reviewing
+                    {% endif %}
+                  </span>
+                </div>
+
+                <!-- Instructor Model Breakdown (Hidden until submitted or toggled) -->
+                <div class="inquiry-solution-box {% if has_submitted %}is-open{% endif %}" id="solution-{{ q.id }}">
+                  <div class="solution-kicker">
+                    Instructor's Intended Takeaway &amp; Key Concept:
+                  </div>
+                  <div class="solution-text-prose" id="solution-text-{{ q.id }}">
+                    {{ q.answer }}
+                  </div>
+
+                  <div class="solution-self-evaluation">
+                    <span class="evaluation-prompt">Compare your answer to the instructor's: How did your reasoning match?</span>
+                    <div class="evaluation-btn-group">
+                      <button 
+                        type="button" 
+                        class="btn-eval-pill btn-eval-pass {% if resp and resp.self_assessment == 'pass' %}is-active{% endif %}" 
+                        id="btn-pass-{{ q.id }}"
+                        onclick="recordCheckpointAssessment({{ q.id }}, 'pass')"
+                      >
+                        &#10003; Mastered Concept
+                      </button>
+                      <button 
+                        type="button" 
+                        class="btn-eval-pill btn-eval-review {% if resp and resp.self_assessment == 'review' %}is-active{% endif %}" 
+                        id="btn-review-{{ q.id }}"
+                        onclick="recordCheckpointAssessment({{ q.id }}, 'review')"
+                      >
+                        ? Needs Review
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- Bottom Unit Navigation Cards -->
+      <div class="stage-bottom-nav">
+        {% if prev_lesson %}
+          <a href="/courses/{{ course.slug }}/lessons/{{ prev_lesson.id }}" class="stage-nav-card nav-card-prev">
+            <span class="nav-card-dir">&larr; Previous Unit</span>
+            <span class="nav-card-title">{{ prev_lesson.title }}</span>
+          </a>
+        {% else %}
+          <div class="nav-card-spacer"></div>
+        {% endif %}
+
+        {% if next_lesson %}
+          <a href="/courses/{{ course.slug }}/lessons/{{ next_lesson.id }}" class="stage-nav-card nav-card-next">
+            <span class="nav-card-dir">Next Unit &rarr;</span>
+            <span class="nav-card-title">{{ next_lesson.title }}</span>
+          </a>
+        {% endif %}
+      </div>
+
+    </main>
+
+    <!-- Right Column: Refined Curriculum Navigator (Sticky Sidebar) -->
+    <aside class="lesson-navigator-sidebar" id="lesson-navigator-sidebar" aria-label="Course curriculum">
+      <div class="navigator-masthead">
+        <div class="navigator-title-row">
+          <h3 class="navigator-heading">Curriculum Navigator</h3>
+          <div class="navigator-title-actions">
+            <span class="navigator-unit-count">{{ all_lessons|length }} Units</span>
+            <button type="button" class="btn-drawer-close" onclick="closeCurriculumDrawer()" aria-label="Close curriculum">&times;</button>
+          </div>
+        </div>
+
+        <!-- Telemetry Progress Bar -->
+        {% set completed_count = all_lessons|selectattr('completed')|list|length %}
+        {% set nav_pct = ((completed_count / (all_lessons|length)) * 100)|round|int if all_lessons|length > 0 else 0 %}
+        <div class="navigator-progress-rail">
+          <div class="navigator-progress-fill" style="width: {{ nav_pct }}%;"></div>
+        </div>
+        <div class="navigator-progress-stats">
+          <span>{{ completed_count }} of {{ all_lessons|length }} completed</span>
+          <span>{{ nav_pct }}%</span>
+        </div>
+      </div>
+
+      <ol class="navigator-units-list">
+        {% for l in all_lessons %}
+          <li class="navigator-unit-item {% if l.id == lesson.id %}is-active-unit{% endif %} {% if l.completed %}is-completed-unit{% endif %}">
+            <a href="/courses/{{ course.slug }}/lessons/{{ l.id }}" class="navigator-unit-link">
+              <span class="unit-status-indicator">
+                {% if l.completed %}
+                  <span class="glyph-check" title="Mastered">&#10003;</span>
+                {% elif l.id == lesson.id %}
+                  <span class="glyph-current" title="Current unit">&bull;</span>
+                {% else %}
+                  <span class="glyph-upcoming" title="Upcoming unit">&#9675;</span>
+                {% endif %}
+              </span>
+              <span class="unit-entry-body">
+                <span class="unit-entry-title">{{ l.title }}</span>
+                {% if l.duration_seconds and l.duration_seconds > 0 %}
+                  <span class="unit-entry-runtime">{{ (l.duration_seconds // 60) }}m</span>
+                {% endif %}
+              </span>
+            </a>
+          </li>
+        {% endfor %}
+      </ol>
+    </aside>
+
+    <!-- Mobile / Tablet Drawer Backdrop -->
+    <div class="drawer-backdrop" id="drawer-backdrop" onclick="closeCurriculumDrawer()"></div>
+
+  </div>
+
+</div>
+
+<script>
+// =============================================================================
+// SECURE SIGNED MUX PLAYBACK CLIENT
+// =============================================================================
+var lessonId = {{ lesson.id }};
+var courseSlug = "{{ course.slug }}";
+var isCompleted = {{ "true" if is_completed else "false" }};
+
+function toggleMobilePlaylist() {
+  var body = document.getElementById('yt-playlist-body');
+  var btn = document.getElementById('yt-playlist-toggle');
+  if (!body || !btn) return;
+  var isOpen = body.classList.toggle('is-open');
+  btn.setAttribute('aria-expanded', isOpen);
+  if (isOpen) {
+    var activeItem = body.querySelector('.is-active');
+    if (activeItem) {
+      activeItem.scrollIntoView({ block: 'nearest' });
+    }
+  }
+}
+
+function closeCurriculumDrawer() {
+  var sidebar = document.getElementById('lesson-navigator-sidebar');
+  var backdrop = document.getElementById('drawer-backdrop');
+  var toggle = document.getElementById('sidebar-toggle');
+  if (sidebar) sidebar.classList.remove('drawer-open');
+  if (backdrop) backdrop.classList.remove('is-visible');
+  if (toggle) toggle.setAttribute('aria-expanded', 'false');
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+  {% if lesson.mux_playback_id %}
+    fetch('/api/course/lessons/' + lessonId + '/playback-token')
+      .then(function(res) {
+        if (!res.ok) {
+          throw new Error("Unable to retrieve playback authorization.");
+        }
+        return res.json();
+      })
+      .then(function(data) {
+        var loadingEl = document.getElementById('video-loading');
+        if (loadingEl) {
+          loadingEl.style.display = 'none';
+        }
+
+        var mount = document.getElementById('player-mount');
+        if (!mount) return;
+
+        var player = document.createElement('mux-player');
+        var pbId = data.playback_id || "{{ lesson.mux_playback_id }}";
+        player.setAttribute('playback-id', pbId);
+
+        // Apply signed Mux Player tokens
+        if (data.token) {
+          player.setAttribute('playback-token', data.token);
+          player.playbackToken = data.token;
+        }
+        if (data.thumbnail_token) {
+          player.setAttribute('thumbnail-token', data.thumbnail_token);
+          player.thumbnailToken = data.thumbnail_token;
+        }
+        if (data.storyboard_token) {
+          player.setAttribute('storyboard-token', data.storyboard_token);
+          player.storyboardToken = data.storyboard_token;
+        }
+
+        player.setAttribute('stream-type', 'on-demand');
+        player.setAttribute('metadata-video-title', {{ lesson.title|tojson }});
+        player.setAttribute('metadata-viewer-user-id', {{ (current_user.id|string)|tojson }});
+        player.setAttribute('accent-color', 'var(--accent-brand)');
+        player.style.width = '100%';
+        player.style.height = '100%';
+        player.style.display = 'block';
+
+        mount.appendChild(player);
+
+        // Player error logger
+        player.addEventListener('error', function(e) {
+          console.error("Mux Player media error:", e);
+        });
+
+        // Heartbeat position tracker
+        var lastSavedSec = 0;
+        player.addEventListener('timeupdate', function() {
+          var currentSec = Math.floor(player.currentTime);
+          if (currentSec > 0 && currentSec - lastSavedSec >= 15) {
+            lastSavedSec = currentSec;
+            saveProgress(false, currentSec);
+          }
+        });
+
+        // Auto-complete & scroll to Checkpoint on video end
+        player.addEventListener('ended', function() {
+          if (!isCompleted) {
+            setLessonCompletedUI(true);
+            saveProgress(true, Math.floor(player.duration || 0));
+          }
+          var checkpoint = document.getElementById('checkpoint-section');
+          if (checkpoint) {
+            checkpoint.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      })
+      .catch(function(err) {
+        var loadingEl = document.getElementById('video-loading');
+        if (loadingEl) {
+          loadingEl.innerHTML = '<span style="color: #b92d2d; font-family: var(--font-mono); font-size: 0.85rem;">Failed to authorize video: ' + err.message + '</span>';
+        }
+      });
+  {% endif %}
+
+  // Mobile / Tablet Drawer Toggle
+  var sidebarToggle = document.getElementById('sidebar-toggle');
+  var sidebar = document.getElementById('lesson-navigator-sidebar');
+  var backdrop = document.getElementById('drawer-backdrop');
+  if (sidebarToggle && sidebar) {
+    sidebarToggle.addEventListener('click', function() {
+      var isOpen = sidebar.classList.toggle('drawer-open');
+      if (backdrop) backdrop.classList.toggle('is-visible', isOpen);
+      sidebarToggle.setAttribute('aria-expanded', isOpen);
+    });
+  }
+
+  // Load Scratchpad Reflections from LocalStorage only if DB was empty
+  document.querySelectorAll('.checkpoint-scratchpad').forEach(function(pad) {
+    var qId = pad.getAttribute('data-question-id');
+    var storageKey = 'mfn_scratchpad_' + lessonId + '_' + qId;
+    if (!pad.value.trim()) {
+      var saved = localStorage.getItem(storageKey);
+      if (saved) {
+        pad.value = saved;
+      }
+    }
+
+    pad.addEventListener('input', function() {
+      localStorage.setItem(storageKey, this.value);
+    });
+  });
+});
+
+function toggleLessonCompletion() {
+  var newStatus = !isCompleted;
+  setLessonCompletedUI(newStatus);
+  saveProgress(newStatus, null);
+}
+
+function setLessonCompletedUI(completed) {
+  isCompleted = completed;
+  var btn = document.getElementById('btn-toggle-complete');
+  var icon = document.getElementById('complete-icon');
+  var text = document.getElementById('complete-text');
+  if (completed) {
+    btn.classList.add('is-completed');
+    icon.innerHTML = '&#10003;';
+    text.innerHTML = 'Unit Mastered &bull; Complete';
+  } else {
+    btn.classList.remove('is-completed');
+    icon.innerHTML = '&#9675;';
+    text.innerHTML = 'Mark Unit as Completed';
+  }
+}
+
+function saveProgress(completed, positionSeconds) {
+  var body = {};
+  if (completed !== null && completed !== undefined) body.completed = completed;
+  if (positionSeconds !== null && positionSeconds !== undefined) body.last_position_seconds = positionSeconds;
+
+  fetch('/api/course/lessons/' + lessonId + '/progress', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  }).catch(function(err) {
+    console.error("Failed to save lesson progress:", err);
+  });
+}
+
+function submitCheckpointAnswer(qId) {
+  var pad = document.getElementById('scratchpad-' + qId);
+  var btn = document.getElementById('btn-submit-' + qId);
+  var btnText = document.getElementById('btn-submit-text-' + qId);
+  var btnIcon = document.getElementById('btn-submit-icon-' + qId);
+  var statusBadge = document.getElementById('status-badge-' + qId);
+  var revealBtn = document.getElementById('btn-reveal-' + qId);
+  var solutionBox = document.getElementById('solution-' + qId);
+
+  if (!pad) return;
+  var val = pad.value.trim();
+  if (!val) {
+    alert("Please write your reasoning or explanation before submitting.");
+    pad.focus();
+    return;
+  }
+
+  var originalText = btnText ? btnText.innerText : "";
+  if (btn) btn.disabled = true;
+  if (btnText) btnText.innerText = "Saving to Database...";
+
+  fetch('/api/course/lessons/' + lessonId + '/questions/' + qId + '/response', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answer: val })
+  })
+  .then(function(res) {
+    if (!res.ok) {
+      return res.json().then(function(err) {
+        throw new Error(err.detail || "Submission failed");
+      });
+    }
+    return res.json();
+  })
+  .then(function(data) {
+    if (btn) {
+      btn.disabled = false;
+      btn.classList.add('is-submitted');
+    }
+    if (btnText) btnText.innerText = "Update Submitted Answer";
+    if (btnIcon) btnIcon.innerHTML = "&#10003;";
+
+    if (statusBadge) {
+      statusBadge.className = "inquiry-status-badge submitted";
+      statusBadge.innerHTML = "&#10003; Answer Saved to Course DB";
+    }
+
+    if (revealBtn) {
+      revealBtn.style.display = "inline-flex";
+    }
+
+    if (solutionBox) {
+      if (data.instructor_answer) {
+        var proseEl = document.getElementById('solution-text-' + qId);
+        if (proseEl) proseEl.innerText = data.instructor_answer;
+      }
+      solutionBox.classList.add('is-open');
+    }
+  })
+  .catch(function(err) {
+    alert("Error saving answer: " + err.message);
+    if (btn) btn.disabled = false;
+    if (btnText) btnText.innerText = originalText;
+  });
+}
+
+function toggleCheckpointSolution(qId) {
+  var box = document.getElementById('solution-' + qId);
+  var btn = document.getElementById('btn-reveal-' + qId);
+  var icon = document.getElementById('reveal-icon-' + qId);
+  var label = document.getElementById('reveal-label-' + qId);
+  if (!box) return;
+
+  if (box.classList.contains('is-open')) {
+    box.classList.remove('is-open');
+    if (icon) icon.innerHTML = '&#9678;';
+    if (label) label.innerText = "Reveal Instructor's Explanation";
+  } else {
+    box.classList.add('is-open');
+    if (icon) icon.innerHTML = '&#9660;';
+    if (label) label.innerText = "Hide Instructor Explanation";
+  }
+}
+
+function recordCheckpointAssessment(qId, result) {
+  renderAssessmentBadge(qId, result);
+
+  fetch('/api/course/lessons/' + lessonId + '/questions/' + qId + '/assessment', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ assessment: result })
+  }).catch(function(err) {
+    console.error("Failed to save self-assessment to DB:", err);
+  });
+}
+
+function renderAssessmentBadge(qId, result) {
+  var badge = document.getElementById('assessment-badge-' + qId);
+  var passBtn = document.getElementById('btn-pass-' + qId);
+  var reviewBtn = document.getElementById('btn-review-' + qId);
+
+  if (passBtn && reviewBtn) {
+    passBtn.classList.remove('is-active');
+    reviewBtn.classList.remove('is-active');
+    if (result === 'pass') passBtn.classList.add('is-active');
+    if (result === 'review') reviewBtn.classList.add('is-active');
+  }
+
+  if (badge) {
+    badge.style.display = 'inline-flex';
+    if (result === 'pass') {
+      badge.innerHTML = '&#10003; Mastered';
+      badge.className = 'inquiry-assessment-tag assessment-pass';
+    } else {
+      badge.innerHTML = '? Reviewing';
+      badge.className = 'inquiry-assessment-tag assessment-review';
+    }
+  }
+}
+</script>
+{% endblock %}

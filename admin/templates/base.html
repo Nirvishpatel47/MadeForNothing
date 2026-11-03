@@ -15,9 +15,11 @@
         <span class="admin-badge">Admin &bull; Local Only</span>
       </div>
       <nav class="admin-nav">
-        <a href="/">Dashboard</a>
-        <a href="/posts/new" class="btn btn-primary btn-sm">+ New Post</a>
-        <a href="{{ public_base_url }}" target="_blank" class="btn btn-secondary btn-sm">View Public Site &nearr;</a>
+        <a href="/" {% if admin_section == 'posts' %}style="font-weight: 700;"{% endif %}>Posts</a>
+        <a href="/courses" {% if admin_section == 'courses' %}style="font-weight: 700;"{% endif %}>Courses</a>
+        <a href="/payments" {% if admin_section == 'payments' %}style="font-weight: 700;"{% endif %}>Payments</a>
+        <a href="/students" {% if admin_section == 'students' %}style="font-weight: 700;"{% endif %}>Students</a>
+        <a href="{{ public_base_url }}" target="_blank" class="btn btn-secondary btn-sm">Public Site &nearr;</a>
       </nav>
     </header>
 

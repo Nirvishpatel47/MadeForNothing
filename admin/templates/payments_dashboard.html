@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Payments &amp; Orders &mdash; Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <div>
+      <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0;">Payment Verification</h2>
+      <p style="font-size: 0.85rem; color: var(--admin-muted); margin: 0.2rem 0 0;">
+        Manual review of peer-to-peer UPI transfers and UTR references.
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- Status Filter Tabs -->
+<div class="filter-bar" style="margin-bottom: 1.5rem;">
+  <div class="filter-group">
+    <a href="/payments?status=all" class="btn btn-sm {% if current_status == 'all' or not current_status %}btn-primary{% else %}btn-secondary{% endif %}">
+      All ({{ all_count }})
+    </a>
+    <a href="/payments?status=pending" class="btn btn-sm {% if current_status == 'pending' %}btn-primary{% else %}btn-secondary{% endif %}" style="{% if pending_count > 0 and current_status != 'pending' %}font-weight: 700; color: #b48214;{% endif %}">
+      Pending ({{ pending_count }})
+    </a>
+    <a href="/payments?status=approved" class="btn btn-sm {% if current_status == 'approved' %}btn-primary{% else %}btn-secondary{% endif %}">
+      Approved ({{ approved_count }})
+    </a>
+    <a href="/payments?status=rejected" class="btn btn-sm {% if current_status == 'rejected' %}btn-primary{% else %}btn-secondary{% endif %}">
+      Rejected ({{ rejected_count }})
+    </a>
+  </div>
+</div>
+
+<div class="table-card">
+  {% if payments %}
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Course</th>
+          <th>Amount</th>
+          <th>Reference / UTR ID</th>
+          <th>Submitted</th>
+          <th>Status</th>
+          <th style="text-align: right;">Review Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+          <tr>
+            <td>
+              <div style="font-weight: 600;">{{ p.user_name }}</div>
+              <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--admin-muted);">{{ p.user_email }}</div>
+              {% if p.user_mobile %}
+                <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--admin-muted);">&#128222; {{ p.user_mobile }}</div>
+              {% endif %}
+              {% if p.payer_name and p.payer_name != p.user_name %}
+                <div style="font-size: 0.72rem; color: var(--admin-muted);">Payer: {{ p.payer_name }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div style="font-weight: 500;">{{ p.course_title }}</div>
+              <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--admin-muted);">/courses/{{ p.course_slug }}</div>
+            </td>
+            <td style="font-family: var(--font-mono); font-weight: 600;">
+              &#8377;{{ "{:,}".format(p.amount) }}
+            </td>
+            <td>
+              <div style="font-family: var(--font-mono); font-size: 0.85rem; font-weight: 700; background: var(--admin-bg); padding: 0.2rem 0.45rem; border-radius: 3px; display: inline-block;">
+                {{ p.payment_reference }}
+              </div>
+              {% if p.payer_note %}
+                <div style="font-size: 0.75rem; color: var(--admin-muted); margin-top: 0.2rem;">Note: {{ p.payer_note }}</div>
+              {% endif %}
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--admin-muted); white-space: nowrap;">
+              {{ p.submitted_at.strftime('%Y-%m-%d %H:%M') if p.submitted_at else '&mdash;' }}
+            </td>
+            <td>
+              {% if p.status == 'approved' %}
+                <span class="status-badge status-published">Approved</span>
+              {% elif p.status == 'pending' %}
+                <span class="status-badge" style="background: rgba(180, 130, 20, 0.15); color: #b48214; font-weight: 700;">Pending</span>
+              {% else %}
+                <span class="status-badge status-draft">Rejected</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-group" style="justify-content: flex-end;">
+                {% if p.status == 'pending' %}
+                  <form method="POST" action="/payments/{{ p.id }}/approve" style="display: inline;">
+                    <button type="submit" class="btn btn-sm" style="background: #198754; color: #ffffff; border: none; font-weight: 600;">
+                      ✓ Approve
+                    </button>
+                  </form>
+                  <form method="POST" action="/payments/{{ p.id }}/reject" style="display: inline;" onsubmit="return confirm('Reject this payment submission?');">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                      ✗ Reject
+                    </button>
+                  </form>
+                {% else %}
+                  <span style="font-size: 0.75rem; color: var(--admin-muted); font-family: var(--font-mono);">
+                    {{ p.reviewed_at.strftime('%Y-%m-%d') if p.reviewed_at else 'Reviewed' }}
+                  </span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div style="padding: 3rem; text-align: center; color: var(--admin-muted);">
+      No payment submissions matching this status.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

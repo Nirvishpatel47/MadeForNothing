@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}MADE FOR NOTHING &mdash; An Archive of Ideas{% endblock %}
+{% block title %}MADE FOR NOTHING &mdash; An Archive of Ideas that need to be understand.{% endblock %}
 {% block description %}An evolving archive of questions, research, experiments, writing, books, and things worth understanding.{% endblock %}
 
 {% block json_ld %}
@@ -27,23 +27,21 @@
 
   <h1 id="hero-title" class="hero-heading">
     Some questions are<br>
-    <em>worth staying with.</em>
+    <em>worth asking.</em>
   </h1>
 
   <p class="hero-summary">
-  MADE FOR NOTHING is a personal laboratory that evolves with time.
-  Here, we ask questions about everyday life—business, productivity, and science.
-  We try to solve problems, experiment with ideas, and record what we discover in the most useful way possible.
+  I write about ideas, investigate questions, run experiments, and build things along the way. This is where I keep what I learn.
   </p>
 
   <div class="hero-rhythms">
-    <span><strong>Read.</strong> Find something unfamiliar.</span>
+    <span><strong>Read.</strong> Follow an idea far enough to discover what makes it interesting.</span>
     <span class="rhythm-sep">&bull;</span>
-    <span><strong>Question.</strong> Don't stop at the first answer.</span>
+    <span><strong>Question.</strong> Look closer at claims, assumptions, and things we usually take for granted.</span>
     <span class="rhythm-sep">&bull;</span>
-    <span><strong>Experiment.</strong> Find out for yourself.</span>
+    <span><strong>Experiment.</strong> Try things out and record what actually happens.</span>
     <span class="rhythm-sep">&bull;</span>
-    <span><strong>Build.</strong> Make the idea tangible.</span>
+    <span><strong>Build.</strong> Turn an idea into something real, useful, or simply worth exploring.</span>
   </div>
 
 </section>
@@ -54,7 +52,7 @@
 
   <div class="section-top">
     <h2 id="start-here-heading" class="section-title">Begin Anywhere</h2>
-    <span class="section-note">A few things worth opening</span>
+    <span class="section-note">Start with whatever catches your attention. There's no particular order to follow.</span>
   </div>
 
   {% if selected_posts %}
@@ -135,7 +133,9 @@
 
   <div class="section-top">
     <h2 id="archive-heading" class="section-title">The Archive</h2>
-    <span class="section-note">Follow a thread</span>
+    <span class="section-note">
+      Browse by subject or follow whatever interests you.
+    </span>
   </div>
 
   <div class="archive-grid">
@@ -163,6 +163,23 @@
       </a>
 
     {% endfor %}
+
+    <!-- COURSES -->
+    <a href="/course" class="archive-item">
+
+      <div class="archive-item-head">
+        <span class="archive-item-title">Courses</span>
+
+        <span class="archive-item-arrow" aria-hidden="true">
+          &rarr;
+        </span>
+      </div>
+
+      <p class="archive-item-desc">
+        Lessons and learning resources to explore at your own pace.
+      </p>
+
+    </a>
 
   </div>
 
@@ -235,28 +252,13 @@
   </div>
 
   <div class="about-copy">
-    <p>MADE FOR NOTHING is a personal laboratory that evolves with time.</p>
+    <p>Made For Nothing is a personal archive of what I'm learning, questioning, researching, and building.</p>
     <p>
-      It exists to investigate questions about business, productivity,
-      science, and the ordinary things that surround us.
-    </p>
-    <p>
-      Some ideas are researched. Some are tested.
-      Some turn out to be wrong.
-      The point is not to be right the first time.
-      The point is to find out.
+    I use it to explore ideas beyond the surface, test things instead of merely assuming, and document what I find along the way.
+
+    Not everything here will lead to a breakthrough. That's fine. The point is to investigate, learn, and leave a record of the process.
     </p>
   </div>
-</section>
-
-<section class="archive-closing" aria-label="Closing statement">
-  <p class="archive-closing-main">
-    The archive is unfinished by design.
-  </p>
-  <p class="archive-closing-sub">
-    Ideas change. Experiments fail.<br>
-    Questions lead to better questions.
-  </p>
 </section>
 
 <style>

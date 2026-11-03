@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Lessons for {{ course.title }} &mdash; Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <div>
+      <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0;">
+        Lessons: {{ course.title }}
+      </h2>
+      <p style="font-size: 0.85rem; color: var(--admin-muted); margin: 0.2rem 0 0;">
+        Manage syllabus units, Mux video uploads, and marginalia.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.75rem;">
+      <a href="/courses" class="btn btn-secondary btn-sm">&larr; All Courses</a>
+      <a href="/courses/{{ course.id }}/lessons/new" class="btn btn-primary btn-sm">+ Add Lesson</a>
+    </div>
+  </div>
+</div>
+
+<div class="table-card">
+  {% if lessons %}
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th style="width: 60px;">Order</th>
+          <th>Lesson Title &amp; Slug</th>
+          <th>Duration</th>
+          <th>Video Status</th>
+          <th>Q&amp;A</th>
+          <th>Status</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for lesson in lessons %}
+          <tr>
+            <td style="font-family: var(--font-mono); font-weight: 600; text-align: center;">
+              {{ lesson.order_index }}
+            </td>
+            <td>
+              <div style="font-weight: 600; margin-bottom: 0.2rem;">
+                <a href="/lessons/{{ lesson.id }}/edit" style="color: inherit; text-decoration: none;">
+                  {{ lesson.title }}
+                </a>
+              </div>
+              <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--admin-muted);">
+                /{{ lesson.slug }}
+              </div>
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.8rem; color: var(--admin-muted);">
+              {% if lesson.duration_seconds and lesson.duration_seconds > 0 %}
+                {{ (lesson.duration_seconds // 60) }}m {{ (lesson.duration_seconds % 60) }}s
+              {% else %}
+                &mdash;
+              {% endif %}
+            </td>
+            <td>
+              {% if lesson.mux_status == 'ready' %}
+                <span class="status-badge status-published">Ready</span>
+              {% elif lesson.mux_status == 'processing' or lesson.mux_status == 'uploading' %}
+                <span class="status-badge" style="background: #e0f2fe; color: #0369a1;">Processing</span>
+              {% elif lesson.mux_playback_id %}
+                <span class="status-badge" style="background: #e0f2fe; color: #0369a1;">Configured</span>
+              {% else %}
+                <span style="font-size: 0.75rem; color: var(--admin-muted);">No Video</span>
+              {% endif %}
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.8rem;">
+              {{ lesson.question_count or 0 }} Q&amp;As
+            </td>
+            <td>
+              {% if lesson.is_published %}
+                <span class="status-badge status-published">Published</span>
+              {% else %}
+                <span class="status-badge status-draft">Draft</span>
+              {% endif %}
+            </td>
+            <td>
+              <div class="action-group" style="justify-content: flex-end;">
+                <a href="/lessons/{{ lesson.id }}/edit" class="btn btn-secondary btn-sm">Edit &amp; Video</a>
+                <form method="POST" action="/lessons/{{ lesson.id }}/delete" style="display: inline;" onsubmit="return confirm('Delete this lesson?');">
+                  <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div style="padding: 3rem; text-align: center; color: var(--admin-muted);">
+      No lessons added to this course yet. Click <strong>+ Add Lesson</strong> to create your first unit.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

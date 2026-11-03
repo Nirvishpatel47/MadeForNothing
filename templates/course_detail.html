@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+
+{% block title %}{{ course.title }} &mdash; Technical Curricula &bull; MADE FOR NOTHING{% endblock %}
+
+{% block description %}{{ course.subtitle or (course.description[:160] if course.description else course.title) }}{% endblock %}
+
+{% block container_class %}course-detail-container{% endblock %}
+
+{% block content %}
+<div class="prospectus-layout">
+
+  <!-- Archival Navigation Breadcrumb -->
+  <nav class="prospectus-nav" aria-label="Breadcrumb">
+    <a href="/courses" class="btn-prospectus-back">
+      <span class="btn-arrow" aria-hidden="true">&larr;</span>
+      <span>All Technical Curricula</span>
+    </a>
+  </nav>
+
+  <!-- Course Masthead -->
+  <header class="prospectus-header">
+    <div class="prospectus-meta-bar">
+      <span class="type-badge">Curriculum</span>
+      <span class="meta-dot">&bull;</span>
+      <span class="prospectus-stat">{{ lessons|length }} {{ "Unit" if lessons|length == 1 else "Units" }}</span>
+      {% if total_course_minutes and total_course_minutes > 0 %}
+        <span class="meta-dot">&bull;</span>
+        <span class="prospectus-stat">~{{ total_course_minutes }} min aggregate runtime</span>
+      {% elif course.total_duration_seconds and course.total_duration_seconds > 0 %}
+        <span class="meta-dot">&bull;</span>
+        <span class="prospectus-stat">~{{ (course.total_duration_seconds // 60) }} min aggregate runtime</span>
+      {% endif %}
+      <span class="meta-dot">&bull;</span>
+      <span class="prospectus-stat">Self-Paced with Marginalia</span>
+    </div>
+
+    <h1 class="prospectus-title">{{ course.title }}</h1>
+
+    {% if course.subtitle %}
+      <p class="prospectus-deck">{{ course.subtitle }}</p>
+    {% endif %}
+  </header>
+
+  <!-- Architectural Tuition & Enrollment Ledger Bar -->
+  <section class="prospectus-ledger-bar" aria-label="Enrollment terms">
+    <div class="ledger-bar-col ledger-pricing-col">
+      <span class="ledger-label">Tuition / Access Terms</span>
+      <div class="ledger-price-display">
+        {% if course.price == 0 %}
+          <span class="price-figure">Free Access</span>
+        {% else %}
+          <span class="price-currency">&#8377;</span>
+          <span class="price-figure">{{ "{:,}".format(course.price) }}</span>
+          <span class="price-cadence">One-time Settlement</span>
+        {% endif %}
+      </div>
+      <span class="ledger-subnote">Direct peer-to-peer UPI transfer &bull; Zero tracking &bull; Lifetime access</span>
+    </div>
+
+    <div class="ledger-bar-col ledger-pillars-col">
+      <span class="ledger-label">What Is Included</span>
+      <ul class="ledger-features-list">
+        <li><span>&bull;</span> Signed 1080p video lectures with dedicated playback</li>
+        <li><span>&bull;</span> Comprehensive technical marginalia &amp; code proofs</li>
+        <li><span>&bull;</span> Interactive concept verification checkpoints</li>
+      </ul>
+    </div>
+
+    <div class="ledger-bar-col ledger-action-col">
+      {% if is_enrolled %}
+        <div class="enrollment-status-group">
+          <div class="enrollment-chip enrolled-chip">
+            <span class="chip-dot"></span>
+            <span>Active Enrollment</span>
+          </div>
+          <div class="prospectus-btn-pair">
+            {% if first_lesson_id %}
+              <a href="/courses/{{ course.slug }}/lessons/{{ first_lesson_id }}" class="btn-prospectus-primary">
+                <span>Resume Lesson 01</span>
+                <span class="btn-arrow">&rarr;</span>
+              </a>
+            {% else %}
+              <a href="/courses/dashboard" class="btn-prospectus-primary">
+                <span>Open Studio</span>
+                <span class="btn-arrow">&rarr;</span>
+              </a>
+            {% endif %}
+            <a href="#curriculum" class="btn-prospectus-secondary">
+              <span>View Syllabus &darr;</span>
+            </a>
+          </div>
+        </div>
+      {% elif pending_payment %}
+        <div class="enrollment-chip pending-chip">
+          <span class="chip-dot-yellow"></span>
+          <span>Verification Pending</span>
+        </div>
+        <div class="pending-compact-ref">
+          UTR: <code>{{ pending_payment.payment_reference }}</code><br>
+          <span class="verification-subtext">Manual audit in progress (~2h)</span>
+        </div>
+        <a href="#curriculum" class="btn-prospectus-secondary" style="margin-top: 0.5rem;">
+          <span>Explore Syllabus &darr;</span>
+        </a>
+      {% else %}
+        <div class="prospectus-btn-pair">
+          <a href="/courses/{{ course.slug }}/enroll" class="btn-prospectus-primary">
+            {% if course.price == 0 %}
+              <span>Enroll in Curriculum</span>
+            {% else %}
+              <span>Enroll Now &mdash; &#8377;{{ "{:,}".format(course.price) }}</span>
+            {% endif %}
+            <span class="btn-arrow">&rarr;</span>
+          </a>
+          <a href="#curriculum" class="btn-prospectus-secondary">
+            <span>Explore Syllabus &darr;</span>
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+  <!-- Tactile In-Page Section Navigator (Interactive Jump Buttons) -->
+  <nav class="prospectus-section-nav" aria-label="Course section navigation">
+    <div class="section-nav-wrapper">
+      <span class="section-nav-kicker">Jump to:</span>
+      <div class="section-nav-pills" role="tablist">
+        {% if rendered_description %}
+          <a href="#overview" class="btn-section-nav active" role="tab">
+            <span>✦ Overview</span>
+          </a>
+        {% endif %}
+        {% if course.what_you_will_learn %}
+          <a href="#mastery" class="btn-section-nav" role="tab">
+            <span>⚙ Mastery</span>
+          </a>
+        {% endif %}
+        {% if course.target_audience %}
+          <a href="#audience" class="btn-section-nav" role="tab">
+            <span>🎯 Prerequisites</span>
+          </a>
+        {% endif %}
+        <a href="#curriculum" class="btn-section-nav" role="tab">
+          <span>☰ Syllabus ({{ lessons|length }})</span>
+        </a>
+        {% if course.faq and course.faq|length > 0 %}
+          <a href="#faq" class="btn-section-nav" role="tab">
+            <span>❓ FAQ</span>
+          </a>
+        {% endif %}
+        {% if course.instructor_bio %}
+          <a href="#instructor" class="btn-section-nav" role="tab">
+            <span>✍ Instructor</span>
+          </a>
+        {% endif %}
+      </div>
+    </div>
+  </nav>
+
+  <!-- Editorial Course Deep Dive Content -->
+  <div class="prospectus-body-layout">
+    <div class="prospectus-main-column">
+
+      <!-- Course Overview -->
+      {% if rendered_description %}
+        <section class="prospectus-section" id="overview">
+          <div class="section-header-row">
+            <h2 class="prospectus-section-title">Course Overview &amp; Thesis</h2>
+          </div>
+          <div class="prospectus-prose markdown-body">
+            {{ rendered_description|safe }}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- What You Will Master -->
+      {% if course.what_you_will_learn %}
+        <section class="prospectus-section" id="mastery">
+          <div class="section-header-row">
+            <h2 class="prospectus-section-title">Theoretical &amp; Engineering Mastery</h2>
+          </div>
+          <div class="prospectus-mastery-card">
+            <div class="mastery-prose markdown-body">
+              {{ rendered_learn|safe }}
+            </div>
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- Target Audience -->
+      {% if course.target_audience %}
+        <section class="prospectus-section" id="audience">
+          <div class="section-header-row">
+            <h2 class="prospectus-section-title">Target Audience &amp; Prerequisites</h2>
+          </div>
+          <div class="prospectus-prose">
+            {{ rendered_audience|safe }}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- The Annotated Syllabus Ledger (With Interactive Controls) -->
+      <section class="prospectus-section" id="curriculum">
+        <div class="syllabus-header-row">
+          <div>
+            <h2 class="prospectus-section-title" style="margin-bottom: 0.25rem; border-bottom: none; padding-bottom: 0;">
+              Curriculum Architecture &amp; Syllabus
+            </h2>
+            <p class="syllabus-subdeck">Structured sequential lectures with dedicated video, proofs, and verification checkpoints.</p>
+          </div>
+          <div class="syllabus-controls-group">
+            <span class="syllabus-count-pill">{{ lessons|length }} Structured Units</span>
+            <button 
+              type="button" 
+              class="btn-syllabus-control" 
+              id="btn-toggle-all-outlines"
+              onclick="toggleAllOutlines()"
+              aria-label="Toggle all unit outlines"
+            >
+              <span class="control-glyph">&#9662;</span>
+              <span class="control-label">Expand Outlines</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="syllabus-ledger">
+          {% for lesson in lessons %}
+            <article class="syllabus-unit-row {% if is_enrolled %}enrolled-unit-row{% endif %}" id="unit-row-{{ lesson.id }}">
+              <div class="unit-index-cell">
+                <span class="unit-num-mono">{{ "%02d" % loop.index }}</span>
+              </div>
+
+              <div class="unit-content-cell">
+                <div class="unit-title-line">
+                  <h3 class="unit-title">
+                    {% if is_enrolled %}
+                      <a href="/courses/{{ course.slug }}/lessons/{{ lesson.id }}" class="unit-title-link">
+                        {{ lesson.title }}
+                      </a>
+                    {% else %}
+                      <span class="unit-title-text">{{ lesson.title }}</span>
+                    {% endif %}
+                  </h3>
+
+                  {% if lesson.duration_seconds and lesson.duration_seconds > 0 %}
+                    <span class="unit-runtime-badge">{{ (lesson.duration_seconds // 60) }}m runtime</span>
+                  {% endif %}
+                </div>
+
+                {% if lesson.description %}
+                  <div class="unit-summary-drawer" id="summary-drawer-{{ lesson.id }}">
+                    <p class="unit-summary-text">{{ lesson.description }}</p>
+                  </div>
+                {% endif %}
+              </div>
+
+              <div class="unit-actions-cell">
+                {% if is_enrolled %}
+                  <a href="/courses/{{ course.slug }}/lessons/{{ lesson.id }}" class="btn-unit-action btn-unit-play" title="Open and study this unit">
+                    <span class="play-glyph">&#9658;</span>
+                    <span>Start Unit</span>
+                  </a>
+                {% else %}
+                  <div class="unit-nonmember-actions">
+                    {% if lesson.description %}
+                      <button 
+                        type="button" 
+                        class="btn-unit-action btn-unit-outline-toggle" 
+                        onclick="toggleSingleOutline('{{ lesson.id }}')"
+                        aria-expanded="false"
+                        id="outline-toggle-{{ lesson.id }}"
+                        title="Toggle unit description"
+                      >
+                        <span>Outline</span>
+                        <span class="toggle-arrow">&#9662;</span>
+                      </button>
+                    {% endif %}
+                    <a href="/courses/{{ course.slug }}/enroll" class="btn-unit-action btn-unit-enroll-link" title="Enroll in curriculum to access unit">
+                      <span class="lock-glyph">&#128274;</span>
+                      <span>Enroll</span>
+                    </a>
+                  </div>
+                {% endif %}
+              </div>
+            </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- Frequently Addressed Inquiries -->
+      {% if course.faq and course.faq|length > 0 %}
+        <section class="prospectus-section" id="faq">
+          <div class="section-header-row">
+            <h2 class="prospectus-section-title">Frequently Addressed Inquiries</h2>
+            <span class="section-count-tag">{{ course.faq|length }} Common Questions</span>
+          </div>
+          <div class="prospectus-faq-list">
+            {% for item in course.faq %}
+              <details class="prospectus-faq-item">
+                <summary class="faq-summary-trigger">
+                  <span class="faq-trigger-text">{{ item.question }}</span>
+                  <span class="faq-icon" aria-hidden="true">+</span>
+                </summary>
+                <div class="faq-body-content">
+                  <p>{{ item.answer }}</p>
+                </div>
+              </details>
+            {% endfor %}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- Instructor & Research Ethos -->
+      {% if course.instructor_bio %}
+        <section class="prospectus-section" id="instructor">
+          <div class="section-header-row">
+            <h2 class="prospectus-section-title">Instructor &amp; Research Ethos</h2>
+          </div>
+          <div class="prospectus-prose markdown-body">
+            {{ rendered_instructor|safe }}
+          </div>
+        </section>
+      {% endif %}
+
+      <!-- Bottom Enrollment Action Banner -->
+      <section class="prospectus-bottom-cta" aria-label="Curriculum enrollment invitation">
+        <div class="bottom-cta-card">
+          <div class="bottom-cta-content">
+            <span class="type-badge">Laboratory Curriculum</span>
+            <h3 class="bottom-cta-title">{{ course.title }}</h3>
+            <p class="bottom-cta-desc">
+              Immediate lifetime access to all {{ lessons|length }} lecture units, marginalia proofs, and conceptual checkpoints. Zero third-party trackers.
+            </p>
+          </div>
+          <div class="bottom-cta-action">
+            {% if is_enrolled %}
+              <a href="/courses/{{ course.slug }}/lessons/{{ first_lesson_id or '' }}" class="btn-prospectus-primary">
+                <span>Continue Curriculum</span>
+                <span class="btn-arrow">&rarr;</span>
+              </a>
+            {% elif pending_payment %}
+              <div class="enrollment-chip pending-chip">
+                <span class="chip-dot-yellow"></span>
+                <span>Verification In Progress</span>
+              </div>
+            {% else %}
+              <a href="/courses/{{ course.slug }}/enroll" class="btn-prospectus-primary">
+                {% if course.price == 0 %}
+                  <span>Enroll in Curriculum</span>
+                {% else %}
+                  <span>Enroll Now &mdash; &#8377;{{ "{:,}".format(course.price) }}</span>
+                {% endif %}
+                <span class="btn-arrow">&rarr;</span>
+              </a>
+            {% endif %}
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+
+</div>
+
+<!-- Interactive In-Page Navigation & Drawer Controller -->
+<script>
+  let allOutlinesExpanded = false;
+
+  function toggleAllOutlines() {
+    allOutlinesExpanded = !allOutlinesExpanded;
+    const drawers = document.querySelectorAll('.unit-summary-drawer');
+    const btn = document.getElementById('btn-toggle-all-outlines');
+    
+    drawers.forEach(drawer => {
+      drawer.classList.toggle('is-open', allOutlinesExpanded);
+    });
+
+    if (btn) {
+      const label = btn.querySelector('.control-label');
+      const glyph = btn.querySelector('.control-glyph');
+      if (label) label.textContent = allOutlinesExpanded ? 'Collapse Outlines' : 'Expand Outlines';
+      if (glyph) glyph.innerHTML = allOutlinesExpanded ? '&#9652;' : '&#9662;';
+    }
+  }
+
+  function toggleSingleOutline(lessonId) {
+    const drawer = document.getElementById('summary-drawer-' + lessonId);
+    const toggleBtn = document.getElementById('outline-toggle-' + lessonId);
+    if (!drawer) return;
+    
+    const isOpen = drawer.classList.toggle('is-open');
+    if (toggleBtn) {
+      toggleBtn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+      const arrow = toggleBtn.querySelector('.toggle-arrow');
+      if (arrow) arrow.innerHTML = isOpen ? '&#9652;' : '&#9662;';
+    }
+  }
+
+  // Active section indicator on scroll
+  document.addEventListener('DOMContentLoaded', () => {
+    const navPills = document.querySelectorAll('.btn-section-nav');
+    const sections = document.querySelectorAll('.prospectus-section');
+
+    window.addEventListener('scroll', () => {
+      let currentSectionId = '';
+      const scrollPos = window.scrollY + 140;
+
+      sections.forEach(section => {
+        if (section.offsetTop <= scrollPos) {
+          currentSectionId = section.getAttribute('id');
+        }
+      });
+
+      if (currentSectionId) {
+        navPills.forEach(pill => {
+          const href = pill.getAttribute('href');
+          if (href === '#' + currentSectionId) {
+            pill.classList.add('active');
+          } else {
+            pill.classList.remove('active');
+          }
+        });
+      }
+    }, { passive: true });
+  });
+</script>
+{% endblock %}

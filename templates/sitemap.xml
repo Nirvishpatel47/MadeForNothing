@@ -26,6 +26,10 @@
     <loc>{{ base_url }}/books</loc>
   </url>
 
+  <url>
+    <loc>{{ base_url }}/courses</loc>
+  </url>
+
   <!-- Individual content -->
   {% for item in posts %}
   <url>
@@ -35,6 +39,16 @@
     <lastmod>{{ (item.updated_at or item.published_at).strftime('%Y-%m-%d') }}</lastmod>
     {% endif %}
 
+  </url>
+  {% endfor %}
+
+  <!-- Individual courses -->
+  {% for course in courses %}
+  <url>
+    <loc>{{ base_url }}/courses/{{ course.slug }}</loc>
+    {% if course.updated_at or course.created_at %}
+    <lastmod>{{ (course.updated_at or course.created_at).strftime('%Y-%m-%d') }}</lastmod>
+    {% endif %}
   </url>
   {% endfor %}
 

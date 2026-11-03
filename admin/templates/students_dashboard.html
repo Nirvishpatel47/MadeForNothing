@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Students &mdash; Admin{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem;">
+  <div style="display: flex; justify-content: space-between; align-items: baseline;">
+    <div>
+      <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0;">Student Enrollments</h2>
+      <p style="font-size: 0.85rem; color: var(--admin-muted); margin: 0.2rem 0 0;">
+        Registered accounts, active course access, and administrative override controls.
+      </p>
+    </div>
+  </div>
+</div>
+
+<div class="table-card">
+  {% if enrollments %}
+    <table class="admin-table">
+      <thead>
+        <tr>
+          <th>Student</th>
+          <th>Course</th>
+          <th>Status</th>
+          <th>Access Granted</th>
+          <th>Enrolled Since</th>
+          <th style="text-align: right;">Manual Override</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for e in enrollments %}
+          <tr>
+            <td>
+              <div style="font-weight: 600;">{{ e.user_name }}</div>
+              <div style="font-family: var(--font-mono); font-size: 0.75rem; color: var(--admin-muted);">{{ e.user_email }}</div>
+              {% if e.user_mobile %}
+                <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--admin-muted);">&#128222; {{ e.user_mobile }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <div style="font-weight: 500;">{{ e.course_title }}</div>
+              <div style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--admin-muted);">/courses/{{ e.course_slug }}</div>
+            </td>
+            <td>
+              {% if e.status == 'active' %}
+                <span class="status-badge status-published">Active Access</span>
+              {% elif e.status == 'pending' %}
+                <span class="status-badge" style="background: rgba(180, 130, 20, 0.15); color: #b48214;">Pending</span>
+              {% else %}
+                <span class="status-badge status-draft">Revoked</span>
+              {% endif %}
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--admin-muted); white-space: nowrap;">
+              {{ e.granted_at.strftime('%Y-%m-%d %H:%M') if e.granted_at else '&mdash;' }}
+            </td>
+            <td style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--admin-muted); white-space: nowrap;">
+              {{ e.created_at.strftime('%Y-%m-%d') if e.created_at else '&mdash;' }}
+            </td>
+            <td>
+              <div class="action-group" style="justify-content: flex-end;">
+                {% if e.status != 'active' %}
+                  <form method="POST" action="/students/{{ e.user_id }}/courses/{{ e.course_id }}/grant" style="display: inline;">
+                    <button type="submit" class="btn btn-secondary btn-sm" style="color: #198754; font-weight: 600;">
+                      Grant Access
+                    </button>
+                  </form>
+                {% else %}
+                  <form method="POST" action="/students/{{ e.user_id }}/courses/{{ e.course_id }}/revoke" style="display: inline;" onsubmit="return confirm('Revoke course access for this student?');">
+                    <button type="submit" class="btn btn-danger btn-sm">
+                      Revoke Access
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <div style="padding: 3rem; text-align: center; color: var(--admin-muted);">
+      No student enrollments found yet.
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
