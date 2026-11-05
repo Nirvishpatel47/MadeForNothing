@@ -540,8 +540,54 @@ p, blockquote, figcaption, article, section {
   transform: translateY(-1px);
 }
 
-.curated-entry > div:first-child,
-.archive-card > div:first-child {
+.curated-entry-image-wrap,
+.archive-card-image-wrap {
+  width: calc(100% + 2.9rem);
+  margin: -1.4rem -1.45rem 1.15rem;
+  overflow: hidden;
+  position: relative;
+  background-color: var(--bg-card);
+  border-bottom: 1px solid var(--border);
+  aspect-ratio: 16 / 9;
+  flex: 0 0 auto !important;
+}
+
+.curated-entry-image-wrap a,
+.archive-card-image-wrap a {
+  display: block;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  text-decoration: none;
+  overflow: hidden;
+}
+
+.curated-entry-image,
+.archive-card-image {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.curated-entry:hover .curated-entry-image,
+.archive-card:hover .archive-card-image {
+  transform: scale(1.03);
+}
+
+.curated-entry-body,
+.archive-card-body {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.curated-entry:not(:has(.curated-entry-image-wrap)) > div:first-child,
+.archive-card:not(:has(.archive-card-image-wrap)) > div:first-child {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -996,24 +1042,60 @@ p, blockquote, figcaption, article, section {
   padding-right: 1.75rem;
 }
 
-.detail-layout { width: 100%; display: block; }
+.detail-layout {
+  width: 100%;
+  display: block;
+}
+
+.detail-layout.has-toc {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 3.5rem;
+  align-items: start;
+}
 
 .detail-layout:not(.has-toc) .detail-article {
+  max-width: var(--reading-measure);
   margin: 0 auto;
 }
 
+.detail-article {
+  width: 100%;
+  min-width: 0;
+}
+
 .detail-toc {
-  position: fixed;
-  top: calc(var(--header-h) + 1.5rem);
-  left: 1.5rem; /* Pins to the total left corner of the screen */
-  width: 200px;
-  max-height: calc(100vh - 4rem);
-  overflow-y: auto;
+  position: sticky !important;
+  top: calc(var(--header-h) + 1.5rem) !important;
+  align-self: start !important;
+  width: 100% !important;
+  max-height: calc(100vh - var(--header-h) - 3rem) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+}
+
+.detail-toc::-webkit-scrollbar {
+  width: 4px;
+}
+.detail-toc::-webkit-scrollbar-track {
+  background: transparent;
+}
+.detail-toc::-webkit-scrollbar-thumb {
+  background-color: var(--border-hover);
+  border-radius: 4px;
+}
+.detail-toc::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-dim);
 }
 
 .detail-toc-inner {
-  /* Remove 'position: sticky' and 'top: ...' entirely */
-  padding-top: 0.15rem;
+  position: static !important;
+  padding: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
 }
 
 .detail-toc-label {
@@ -1060,6 +1142,44 @@ p, blockquote, figcaption, article, section {
 .detail-back-link:hover {
   color: var(--text);
   transform: translateX(-2px);
+}
+
+/* Featured Cover Image on Article Detail View */
+.detail-featured-image-wrapper {
+  margin: 0 0 2.25rem 0;
+  width: 100%;
+  max-width: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background-color: var(--bg-surface);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.detail-featured-image {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.detail-featured-image-caption {
+  padding: 0.55rem 0.9rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+  background-color: var(--bg-card);
+  text-align: left;
+}
+
+@media (max-width: 768px) {
+  .detail-featured-image-wrapper {
+    margin: 0 0 1.75rem 0;
+    border-radius: calc(var(--radius) - 2px);
+  }
 }
 
 .detail-header { 
@@ -1709,22 +1829,17 @@ pre:hover .copy-code-btn { opacity: 1; }
 /* --------------------------------------------------------------------------
    Responsive
    -------------------------------------------------------------------------- */
-@media (max-width: 1350px) {
-    .detail-layout.has-toc {
-    display: block;
+@media (max-width: 1024px) {
+  .detail-layout.has-toc {
+    display: block !important;
   }
   .detail-toc {
-    position: relative;
-    top: 0;
-    left: 0;
-    width: 100%;
-    max-height: none;
-    margin-bottom: 2rem;
+    display: none !important; /* Direct reading on mobile and tablet — no contents section */
   }
   .detail-article {
-    width: 100%;
-    max-width: var(--reading-measure); /* 680px */
-    margin: 0;
+    width: 100% !important;
+    max-width: var(--reading-measure);
+    margin: 0 auto;
   }
   .detail-continue-grid,
   .continue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -1821,13 +1936,7 @@ pre:hover .copy-code-btn { opacity: 1; }
   margin: 4.5rem 0; 
   width: 100%;
 }
-.detail-toc {
-  width: 100%;
-  transition: opacity 0.2s ease;
-  position: sticky;
-  top: calc(var(--header-h) + 1.5rem);
-  align-self: start; 
-}
+
 
 /* ==========================================================================
    COURSE SYSTEM & LEARNING MANAGEMENT (EDITORIAL SYSTEM)

@@ -54,6 +54,15 @@ class Settings:
     MUX_SIGNING_KEY_ID: str = os.getenv("MUX_SIGNING_KEY_ID", "").strip()
     MUX_SIGNING_PRIVATE_KEY: str = os.getenv("MUX_SIGNING_PRIVATE_KEY", "").strip()
 
+    # Cloudflare R2 Storage (Article Featured Image Management)
+    R2_ACCOUNT_ID: str = os.getenv("R2_ACCOUNT_ID", "").strip()
+    R2_ACCESS_KEY_ID: str = os.getenv("R2_ACCESS_KEY_ID", "").strip()
+    R2_SECRET_ACCESS_KEY: str = os.getenv("R2_SECRET_ACCESS_KEY", "").strip()
+    R2_BUCKET_NAME: str = os.getenv("R2_BUCKET_NAME", "").strip()
+    R2_ENDPOINT_URL: str = os.getenv("R2_ENDPOINT_URL", "").strip()
+    R2_PUBLIC_URL: str = os.getenv("R2_PUBLIC_URL", "").strip().rstrip("/")
+    R2_MAX_UPLOAD_SIZE_MB: int = int(os.getenv("R2_MAX_UPLOAD_SIZE_MB", "15"))
+
 
 settings = Settings()
 

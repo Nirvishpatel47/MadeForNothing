@@ -12,6 +12,14 @@
 
 {% block og_type %}article{% endblock %}
 
+{% block og_image %}
+{% if post.featured_image_url %}
+  <meta property="og:image" content="{{ post.featured_image_url }}">
+  <meta name="twitter:image" content="{{ post.featured_image_url }}">
+  <meta name="twitter:card" content="summary_large_image">
+{% endif %}
+{% endblock %}
+
 {% block json_ld %}
 <script type="application/ld+json">
 {
@@ -21,6 +29,9 @@
   "description": {{ (post.seo_description or post.excerpt)|tojson }},
   "datePublished": "{% if post.published_at %}{{ post.published_at.isoformat() }}{% endif %}",
   "dateModified": "{% if post.updated_at %}{{ post.updated_at.isoformat() }}{% endif %}",
+  {% if post.featured_image_url %}
+  "image": {{ post.featured_image_url|tojson }},
+  {% endif %}
   "mainEntityOfPage": {
     "@type": "WebPage",
     "@id": "{{ canonical_url }}"
@@ -36,22 +47,28 @@
 
 {% block content %}
 
-<div class="detail-layout {% if toc_content %}has-toc{% endif %}">
+<div class="detail-layout has-toc">
 
-  {% if toc_content %}
   <aside class="detail-toc" aria-label="Table of contents">
     <div class="detail-toc-inner">
       <div class="detail-toc-label">
         Contents
       </div>
       <div class="detail-toc-tree">
-        {{ toc_content|safe }}
+        {% if toc_content %}
+          {{ toc_content|safe }}
+        {% else %}
+          <div class="toc">
+            <ul>
+              <li><a href="#article-top">{{ post.title }}</a></li>
+            </ul>
+          </div>
+        {% endif %}
       </div>
     </div>
   </aside>
-  {% endif %}
 
-  <article class="detail-article">
+  <article class="detail-article" id="article-top">
 
     <!-- ================================================================
          BACK NAVIGATION
@@ -62,6 +79,26 @@
         <span>All {{ post.type|capitalize }}</span>
       </a>
     </nav>
+
+    <!-- ================================================================
+         FEATURED COVER IMAGE (Cloudflare R2)
+         ================================================================ -->
+    {% if post.featured_image_url %}
+    <figure class="detail-featured-image-wrapper">
+      <img 
+        src="{{ post.featured_image_url }}" 
+        alt="{{ post.featured_image_alt or post.title }}" 
+        class="detail-featured-image"
+        loading="eager"
+        decoding="async"
+        width="{{ post.featured_image_width or 1280 }}"
+        height="{{ post.featured_image_height or 720 }}"
+      >
+      {% if post.featured_image_alt %}
+        <figcaption class="detail-featured-image-caption">{{ post.featured_image_alt }}</figcaption>
+      {% endif %}
+    </figure>
+    {% endif %}
 
     <!-- ================================================================
          ARTICLE HEADER
@@ -282,7 +319,7 @@
 }
 .detail-layout.has-toc {
   display: grid;
-  grid-template-columns: 190px minmax(0, 1fr);
+  grid-template-columns: 210px minmax(0, 1fr);
   gap: 3.5rem;
   align-items: start;
 }
@@ -291,8 +328,41 @@
    ARTICLE & TOC
    ========================================================================== */
 .detail-article { width: 100%; min-width: 0; }
-.detail-toc { width: 100%; transition: opacity 0.2s ease; }
-.detail-toc-inner { position: sticky; top: 5.5rem; padding-top: 0.25rem; }
+.detail-toc {
+  position: sticky !important;
+  top: calc(var(--header-h, 3.5rem) + 1.5rem) !important;
+  align-self: start !important;
+  width: 100% !important;
+  max-height: calc(100vh - var(--header-h, 3.5rem) - 3rem) !important;
+  overflow-y: auto !important;
+  overscroll-behavior: contain !important;
+  padding-right: 0.5rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-hover) transparent;
+  transition: opacity 0.2s ease;
+}
+
+/* Custom Sleek Scrollbar matching theme (never white) */
+.detail-toc::-webkit-scrollbar {
+  width: 4px;
+}
+.detail-toc::-webkit-scrollbar-track {
+  background: transparent;
+}
+.detail-toc::-webkit-scrollbar-thumb {
+  background-color: var(--border-hover);
+  border-radius: 4px;
+}
+.detail-toc::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-dim);
+}
+
+.detail-toc-inner {
+  position: static !important;
+  padding: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
 .detail-toc-label {
   font-family: var(--font-mono);
   font-size: 0.68rem;
@@ -431,11 +501,12 @@
 /* ==========================================================================
    MOBILE & DARK MODE
    ========================================================================== */
-@media (max-width: 960px) {
+@media (max-width: 1024px) {
   .detail-page-container { max-width: 100% !important; }
-  .detail-layout.has-toc { display: block; }
-  .detail-toc { display: none; }
-  .detail-title { font-size: clamp(2.8rem, 8vw, 4.8rem); }
+  .detail-layout.has-toc { display: block !important; }
+  .detail-toc { display: none !important; } /* Direct reading on mobile & tablet: No content section */
+  .detail-article { width: 100% !important; max-width: var(--reading-measure); margin: 0 auto; }
+  .detail-title { font-size: clamp(2rem, 6vw, 3.2rem); }
   .detail-body { font-size: 1.1rem; }
   .detail-continue-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

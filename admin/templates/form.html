@@ -27,7 +27,7 @@
   </div>
 {% endif %}
 
-<form method="POST" action="{{ '/posts/' ~ post.id ~ '/edit' if post else '/posts/new' }}">
+<form method="POST" action="{{ '/posts/' ~ post.id ~ '/edit' if post else '/posts/new' }}" enctype="multipart/form-data">
   <!-- Core Identity & Publishing Controls -->
   <div class="form-card" style="margin-bottom: 1.5rem;">
     <div class="form-grid form-grid-2">
@@ -81,6 +81,111 @@
     <div class="form-group" style="margin-top: 1.25rem;">
       <label for="excerpt">Excerpt / Summary *</label>
       <textarea id="excerpt" name="excerpt" rows="2" required class="form-control" placeholder="Precise, informative summary for archive listings, landing page, and meta descriptions...">{{ post.excerpt if post else '' }}</textarea>
+    </div>
+  </div>
+
+  <!-- Featured Cover Image Management (Cloudflare R2) -->
+  <div class="form-card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.75rem;">
+      <div>
+        <label style="font-weight: 600; font-size: 0.95rem; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+          Featured Cover Image
+          <span style="font-size: 0.75rem; font-weight: normal; font-family: var(--font-mono); color: var(--admin-muted); background: #eee; padding: 0.15rem 0.4rem; border-radius: 3px;">
+            Cloudflare R2 &bull; Auto-WebP
+          </span>
+        </label>
+        <p class="form-hint" style="margin: 0.25rem 0 0;">
+          Upload a cover image for this entry. Automatically optimized, converted to WebP, and stored in Cloudflare R2.
+        </p>
+      </div>
+    </div>
+
+    <!-- Hidden Metadata Fields for Database Persistence -->
+    <input type="hidden" id="featured_image_url" name="featured_image_url" value="{{ post.featured_image_url if (post and post.featured_image_url) else '' }}">
+    <input type="hidden" id="featured_image_key" name="featured_image_key" value="{{ post.featured_image_key if (post and post.featured_image_key) else '' }}">
+    <input type="hidden" id="featured_image_width" name="featured_image_width" value="{{ post.featured_image_width if (post and post.featured_image_width) else '' }}">
+    <input type="hidden" id="featured_image_height" name="featured_image_height" value="{{ post.featured_image_height if (post and post.featured_image_height) else '' }}">
+    <input type="hidden" id="featured_image_size" name="featured_image_size" value="{{ post.featured_image_size if (post and post.featured_image_size) else '' }}">
+    <input type="hidden" id="featured_image_mime" name="featured_image_mime" value="{{ post.featured_image_mime if (post and post.featured_image_mime) else '' }}">
+    <input type="hidden" id="featured_image_filename" name="featured_image_filename" value="{{ post.featured_image_filename if (post and post.featured_image_filename) else '' }}">
+    <input type="hidden" id="remove_featured_image" name="remove_featured_image" value="0">
+
+    <!-- Actual File Input -->
+    <input type="file" id="featured_image_file" name="featured_image_file" accept=".jpg,.jpeg,.png,.webp,.gif,.avif,.bmp,.tiff" style="display: none;" onchange="handleFileSelected(this);">
+
+    <!-- Image Upload & Preview Container -->
+    <div id="image-upload-zone" style="border: 2px dashed var(--admin-border); border-radius: 6px; padding: 1.25rem; background: #fafafa; text-align: center; transition: border-color 0.2s, background 0.2s; position: relative;">
+      
+      <!-- Current / Selected Image Preview -->
+      <div id="image-preview-container" style="{% if not (post and post.featured_image_url) %}display: none;{% endif %} margin-bottom: 0.5rem;">
+        <div style="display: inline-block; position: relative; max-width: 100%; border-radius: 4px; overflow: hidden; border: 1px solid var(--admin-border); background: #fff; box-shadow: 0 2px 8px rgba(0,0,0,0.06);">
+          <img id="image-preview-element" 
+               src="{{ post.featured_image_url if (post and post.featured_image_url) else '' }}" 
+               alt="{{ post.featured_image_alt if (post and post.featured_image_alt) else 'Featured Image' }}"
+               style="max-width: 100%; width: 480px; aspect-ratio: 16 / 9; display: block; object-fit: cover;">
+        </div>
+
+        <div id="image-meta-display" style="margin-top: 0.6rem; font-size: 0.8rem; font-family: var(--font-mono); color: var(--admin-muted);">
+          {% if post and post.featured_image_url %}
+            <span>Dimensions: {{ post.featured_image_width or 1280 }}&times;{{ post.featured_image_height or 720 }}px (16:9)</span>
+            {% if post.featured_image_size %}
+              &bull; <span>Size: {{ (post.featured_image_size / 1024)|round(1) }} KB</span>
+            {% endif %}
+            &bull; <span style="color: var(--admin-success); font-weight: 600;">Stored on R2 (WebP)</span>
+          {% endif %}
+        </div>
+
+        <div style="margin-top: 0.75rem; display: flex; gap: 0.6rem; justify-content: center;">
+          <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('featured_image_file').click();">
+            Replace Image
+          </button>
+          <button type="button" class="btn btn-danger btn-sm" onclick="handleRemoveImage();">
+            Remove Image
+          </button>
+        </div>
+      </div>
+
+      <!-- Empty State Dropzone Prompt -->
+      <div id="image-empty-prompt" style="{% if post and post.featured_image_url %}display: none;{% endif %} padding: 1.5rem 1rem;">
+        <div style="font-size: 2rem; color: var(--admin-muted); margin-bottom: 0.5rem;" aria-hidden="true">&#128247;</div>
+        <div style="font-weight: 600; color: var(--admin-text); margin-bottom: 0.25rem;">
+          Drag &amp; drop cover image here, or
+        </div>
+        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('featured_image_file').click();" style="margin-top: 0.25rem;">
+          Select Image from Device
+        </button>
+        <div style="font-size: 0.75rem; color: var(--admin-muted); margin-top: 0.5rem;">
+          Supports JPEG, PNG, WebP, GIF &bull; Max 15MB &bull; Visually lossless WebP optimization
+        </div>
+      </div>
+
+      <!-- Upload Progress Indicator -->
+      <div id="upload-progress-container" style="display: none; margin: 1rem 0;">
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; margin-bottom: 0.35rem; color: var(--admin-text); font-weight: 500;">
+          <span id="upload-status-text">Optimizing and uploading to Cloudflare R2...</span>
+          <span id="upload-percent-text">0%</span>
+        </div>
+        <div style="width: 100%; height: 6px; background: #e9ecef; border-radius: 3px; overflow: hidden;">
+          <div id="upload-progress-bar" style="width: 0%; height: 100%; background: var(--admin-accent); transition: width 0.2s;"></div>
+        </div>
+      </div>
+
+      <!-- Image Error Banner -->
+      <div id="image-error-banner" style="display: none; margin-top: 0.75rem; padding: 0.6rem 0.85rem; background: #f8d7da; color: #842029; border: 1px solid #f5c2c7; border-radius: 4px; font-size: 0.85rem; text-align: left;">
+      </div>
+
+    </div>
+
+    <!-- Image Alt / Accessibility Text -->
+    <div class="form-group" style="margin-top: 1rem;">
+      <label for="featured_image_alt" style="font-weight: 500; font-size: 0.85rem;">
+        Image Alt Text (Accessibility &amp; SEO)
+      </label>
+      <input type="text" id="featured_image_alt" name="featured_image_alt" 
+             value="{{ post.featured_image_alt if (post and post.featured_image_alt) else '' }}" 
+             class="form-control" 
+             placeholder="e.g. Minimalist architectural diagram illustrating consensus protocols">
+      <span class="form-hint">Describe the image for screen readers and search engines.</span>
     </div>
   </div>
 
@@ -193,4 +298,173 @@
     <a href="/" class="btn btn-secondary">Cancel</a>
   </div>
 </form>
+
+<script>
+function handleRemoveImage() {
+  document.getElementById('featured_image_file').value = '';
+  document.getElementById('featured_image_url').value = '';
+  document.getElementById('featured_image_key').value = '';
+  document.getElementById('featured_image_width').value = '';
+  document.getElementById('featured_image_height').value = '';
+  document.getElementById('featured_image_size').value = '';
+  document.getElementById('featured_image_mime').value = '';
+  document.getElementById('featured_image_filename').value = '';
+  document.getElementById('remove_featured_image').value = '1';
+
+  document.getElementById('image-preview-container').style.display = 'none';
+  document.getElementById('image-empty-prompt').style.display = 'block';
+  document.getElementById('image-preview-element').src = '';
+  document.getElementById('image-error-banner').style.display = 'none';
+  document.getElementById('upload-progress-container').style.display = 'none';
+}
+
+function handleFileSelected(input) {
+  if (!input.files || !input.files[0]) return;
+  var file = input.files[0];
+  uploadImageFile(file);
+}
+
+function uploadImageFile(file) {
+  var errorBanner = document.getElementById('image-error-banner');
+  var progressContainer = document.getElementById('upload-progress-container');
+  var progressBar = document.getElementById('upload-progress-bar');
+  var percentText = document.getElementById('upload-percent-text');
+  var statusText = document.getElementById('upload-status-text');
+
+  errorBanner.style.display = 'none';
+  errorBanner.textContent = '';
+
+  // Max 15MB client check
+  if (file.size > 15 * 1024 * 1024) {
+    errorBanner.textContent = 'Selected image exceeds the 15MB limit. Please choose a smaller file.';
+    errorBanner.style.display = 'block';
+    return;
+  }
+
+  // Show local instant preview immediately
+  var previewImg = document.getElementById('image-preview-element');
+  var previewContainer = document.getElementById('image-preview-container');
+  var emptyPrompt = document.getElementById('image-empty-prompt');
+
+  try {
+    previewImg.src = URL.createObjectURL(file);
+    previewContainer.style.display = 'block';
+    emptyPrompt.style.display = 'none';
+  } catch(e) {}
+
+  // Prepare FormData for /api/upload-image
+  var formData = new FormData();
+  formData.append('file', file);
+  var typeEl = document.getElementById('type');
+  var slugEl = document.getElementById('slug');
+  if (typeEl) formData.append('type', typeEl.value);
+  if (slugEl) formData.append('slug', slugEl.value);
+
+  progressContainer.style.display = 'block';
+  progressBar.style.width = '20%';
+  percentText.textContent = '20%';
+  statusText.textContent = 'Optimizing to WebP & connecting to Cloudflare R2...';
+
+  var xhr = new XMLHttpRequest();
+  xhr.open('POST', '/api/upload-image', true);
+
+  xhr.upload.onprogress = function(e) {
+    if (e.lengthComputable) {
+      var percent = Math.round((e.loaded / e.total) * 75);
+      progressBar.style.width = percent + '%';
+      percentText.textContent = percent + '%';
+      if (percent >= 70) {
+        statusText.textContent = 'Converting to WebP & storing in Cloudflare R2...';
+      }
+    }
+  };
+
+  xhr.onload = function() {
+    progressBar.style.width = '100%';
+    percentText.textContent = '100%';
+
+    try {
+      var resp = JSON.parse(xhr.responseText);
+      if (xhr.status >= 200 && xhr.status < 300 && resp.success) {
+        statusText.textContent = 'Uploaded successfully to Cloudflare R2!';
+        setTimeout(function() {
+          progressContainer.style.display = 'none';
+        }, 1200);
+
+        // Update hidden inputs
+        document.getElementById('featured_image_url').value = resp.url || '';
+        document.getElementById('featured_image_key').value = resp.key || '';
+        document.getElementById('featured_image_width').value = resp.width || '';
+        document.getElementById('featured_image_height').value = resp.height || '';
+        document.getElementById('featured_image_size').value = resp.size || '';
+        document.getElementById('featured_image_mime').value = resp.mime || 'image/webp';
+        document.getElementById('featured_image_filename').value = resp.original_filename || file.name;
+        document.getElementById('remove_featured_image').value = '0';
+
+        // Update preview URL to real R2 public URL
+        if (resp.url) {
+          previewImg.src = resp.url;
+        }
+
+        // Update metadata display
+        var metaDisp = document.getElementById('image-meta-display');
+        if (metaDisp) {
+          var sizeKb = resp.size ? (resp.size / 1024).toFixed(1) : '';
+          metaDisp.innerHTML = '<span>Dimensions: ' + (resp.width || 1280) + '&times;' + (resp.height || 720) + 'px (16:9)</span>' +
+                               (sizeKb ? ' &bull; <span>Size: ' + sizeKb + ' KB</span>' : '') +
+                               ' &bull; <span style="color: var(--admin-success); font-weight: 600;">Stored on R2 (WebP)</span>';
+        }
+      } else {
+        progressContainer.style.display = 'none';
+        errorBanner.textContent = resp.error || 'Failed to upload image to Cloudflare R2.';
+        errorBanner.style.display = 'block';
+      }
+    } catch(err) {
+      progressContainer.style.display = 'none';
+      errorBanner.textContent = 'Error processing server response: ' + err.message;
+      errorBanner.style.display = 'block';
+    }
+  };
+
+  xhr.onerror = function() {
+    progressContainer.style.display = 'none';
+    errorBanner.textContent = 'Network error while uploading image to server.';
+    errorBanner.style.display = 'block';
+  };
+
+  xhr.send(formData);
+}
+
+// Drag and drop event listeners
+(function() {
+  var zone = document.getElementById('image-upload-zone');
+  if (!zone) return;
+
+  ['dragenter', 'dragover'].forEach(function(eventName) {
+    zone.addEventListener(eventName, function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.style.borderColor = 'var(--admin-accent)';
+      zone.style.background = '#f0f4f8';
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(function(eventName) {
+    zone.addEventListener(eventName, function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      zone.style.borderColor = 'var(--admin-border)';
+      zone.style.background = '#fafafa';
+    }, false);
+  });
+
+  zone.addEventListener('drop', function(e) {
+    var dt = e.dataTransfer;
+    var files = dt.files;
+    if (files && files.length > 0) {
+      uploadImageFile(files[0]);
+    }
+  }, false);
+})();
+</script>
 {% endblock %}

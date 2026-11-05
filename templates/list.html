@@ -23,7 +23,23 @@
       {% for post in posts %}
         <article class="archive-card" style="min-width: 0; max-width: 100%; overflow: hidden;">
           
-          <div style="min-width: 0; max-width: 100%; overflow: hidden;">
+          {% if post.featured_image_url %}
+          <div class="archive-card-image-wrap">
+            <a href="/{{ post.type }}/{{ post.slug }}" tabindex="-1" aria-hidden="true">
+              <img 
+                src="{{ post.featured_image_url }}" 
+                alt="{{ post.featured_image_alt or post.title }}"
+                class="archive-card-image"
+                width="{{ post.featured_image_width or 1280 }}"
+                height="{{ post.featured_image_height or 720 }}"
+                loading="lazy"
+                decoding="async"
+              >
+            </a>
+          </div>
+          {% endif %}
+
+          <div class="archive-card-body" style="min-width: 0; max-width: 100%; overflow: hidden;">
             <div class="meta-row" style="margin-bottom: 0.75rem;">
               {% if post.published_at %}
                 <time datetime="{{ post.published_at.strftime('%Y-%m-%d') }}">

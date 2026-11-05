@@ -27,7 +27,15 @@ def init_db():
         external_links JSONB DEFAULT '[]'::jsonb,
         seo_title VARCHAR(255),
         seo_description TEXT,
-        continue_reading_slugs TEXT[] DEFAULT '{}'
+        continue_reading_slugs TEXT[] DEFAULT '{}',
+        featured_image_url TEXT,
+        featured_image_key TEXT,
+        featured_image_alt VARCHAR(255),
+        featured_image_width INTEGER,
+        featured_image_height INTEGER,
+        featured_image_size INTEGER,
+        featured_image_mime VARCHAR(50),
+        featured_image_filename VARCHAR(255)
     );
 
     CREATE TABLE IF NOT EXISTS newsletter_subscribers (
@@ -45,6 +53,14 @@ def init_db():
 
     -- Schema evolution without external .sql files
     ALTER TABLE posts ADD COLUMN IF NOT EXISTS show_on_landing BOOLEAN DEFAULT FALSE;
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS featured_image_url TEXT;
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS featured_image_key TEXT;
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS featured_image_alt VARCHAR(255);
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS featured_image_width INTEGER;
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS featured_image_height INTEGER;
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS featured_image_size INTEGER;
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS featured_image_mime VARCHAR(50);
+    ALTER TABLE posts ADD COLUMN IF NOT EXISTS featured_image_filename VARCHAR(255);
 
     CREATE INDEX IF NOT EXISTS idx_posts_type_published ON posts (type, is_published, published_at DESC);
     CREATE INDEX IF NOT EXISTS idx_posts_slug ON posts (slug);
@@ -199,6 +215,7 @@ def init_db():
                 logger.debug(f"init_db statement skipped or already applied: {e}")
 
     repair_enrolled_users_foreign_keys()
+    repair_post_image_urls()
     logger.info("Database schema initialized successfully.")
 
 
@@ -247,3 +264,49 @@ def repair_enrolled_users_foreign_keys():
                 except Exception:
                     pass
                 logger.debug(f"FK repair skipped for {table_name}.{constraint_name}: {e}")
+
+
+def repair_post_image_urls():
+    """
+    Cleans up any legacy private S3 endpoint URLs (r2.cloudflarestorage.com) stored in posts
+    and ensures valid object keys and working public/media URLs.
+    """
+    with get_connection() as conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, featured_image_url, featured_image_key
+                    FROM posts
+                    WHERE featured_image_url LIKE '%r2.cloudflarestorage.com%'
+                       OR (featured_image_key IS NULL AND featured_image_url IS NOT NULL AND featured_image_url != '')
+                """)
+                rows = cur.fetchall()
+                for row in rows:
+                    p_id = row["id"]
+                    url = (row["featured_image_url"] or "").strip()
+                    key = (row.get("featured_image_key") or "").strip()
+                    if not key and "/images/" in url:
+                        idx = url.find("images/")
+                        if idx != -1:
+                            key = url[idx:]
+                    elif not key and url.startswith("images/"):
+                        key = url
+
+                    if key:
+                        from r2_storage import build_public_url
+                        new_url = build_public_url(key)
+                        cur.execute("""
+                            UPDATE posts
+                            SET featured_image_key = %s,
+                                featured_image_url = %s,
+                                featured_image_width = COALESCE(featured_image_width, 1280),
+                                featured_image_height = COALESCE(featured_image_height, 720)
+                            WHERE id = %s
+                        """, (key, new_url, p_id))
+            conn.commit()
+        except Exception as e:
+            try:
+                conn.rollback()
+            except Exception:
+                pass
+            logger.debug(f"Image URL repair skipped or failed: {e}")

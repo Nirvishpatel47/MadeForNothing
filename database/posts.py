@@ -10,7 +10,8 @@ from .connection import get_connection, _format_row
 def get_landing_selected_posts(limit=4):
     """Returns published posts explicitly chosen for the landing page 'Start Here' section."""
     query = """
-        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, tags, external_links
+        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, tags, external_links,
+               featured_image_url, featured_image_alt, featured_image_width, featured_image_height
         FROM posts
         WHERE is_published = TRUE AND show_on_landing = TRUE
         ORDER BY published_at DESC, created_at DESC
@@ -33,7 +34,8 @@ def get_recent_published_posts(limit=5, exclude_slugs=None):
         params.extend(exclude_slugs)
 
     query = f"""
-        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, tags, external_links
+        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, tags, external_links,
+               featured_image_url, featured_image_alt, featured_image_width, featured_image_height
         FROM posts
         WHERE {" AND ".join(conditions)}
         ORDER BY published_at DESC, created_at DESC
@@ -50,7 +52,8 @@ def get_recent_published_posts(limit=5, exclude_slugs=None):
 
 def get_published_posts(post_type=None, limit=50, offset=0):
     query = """
-        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, tags, external_links
+        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, tags, external_links,
+               featured_image_url, featured_image_alt, featured_image_width, featured_image_height
         FROM posts
         WHERE is_published = TRUE
     """
@@ -140,7 +143,8 @@ def get_all_posts_admin(post_type=None, is_published=None, show_on_landing=None,
         params.extend([term, term, term])
 
     query = f"""
-        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, updated_at, tags
+        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, updated_at, tags,
+               featured_image_url, featured_image_alt, featured_image_width, featured_image_height
         FROM posts
         WHERE {" AND ".join(conditions)}
         ORDER BY updated_at DESC, created_at DESC
@@ -242,13 +246,25 @@ def create_post(data):
         continue_reading_slugs = [s.strip() for s in continue_reading_slugs.split(",") if s.strip()]
     continue_reading_slugs = continue_reading_slugs[:3]
 
+    featured_image_url = data.get("featured_image_url") or None
+    featured_image_key = data.get("featured_image_key") or None
+    featured_image_alt = data.get("featured_image_alt") or None
+    featured_image_width = data.get("featured_image_width") or None
+    featured_image_height = data.get("featured_image_height") or None
+    featured_image_size = data.get("featured_image_size") or None
+    featured_image_mime = data.get("featured_image_mime") or None
+    featured_image_filename = data.get("featured_image_filename") or None
+
     query = """
         INSERT INTO posts (
             type, title, slug, excerpt, content_markdown,
             is_published, show_on_landing, published_at, created_at, updated_at,
-            tags, external_links, seo_title, seo_description, continue_reading_slugs
+            tags, external_links, seo_title, seo_description, continue_reading_slugs,
+            featured_image_url, featured_image_key, featured_image_alt,
+            featured_image_width, featured_image_height, featured_image_size,
+            featured_image_mime, featured_image_filename
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id, slug, type
     """
     params = (
@@ -266,7 +282,15 @@ def create_post(data):
         external_links_json,
         data.get("seo_title") or None,
         data.get("seo_description") or None,
-        continue_reading_slugs
+        continue_reading_slugs,
+        featured_image_url,
+        featured_image_key,
+        featured_image_alt,
+        featured_image_width,
+        featured_image_height,
+        featured_image_size,
+        featured_image_mime,
+        featured_image_filename
     )
 
     with get_connection() as conn:
@@ -304,6 +328,36 @@ def update_post(post_id, data):
         continue_reading_slugs = [s.strip() for s in continue_reading_slugs.split(",") if s.strip()]
     continue_reading_slugs = continue_reading_slugs[:3]
 
+    # Handle image updates or explicit removal
+    if data.get("remove_featured_image"):
+        featured_image_url = None
+        featured_image_key = None
+        featured_image_alt = None
+        featured_image_width = None
+        featured_image_height = None
+        featured_image_size = None
+        featured_image_mime = None
+        featured_image_filename = None
+    elif "featured_image_url" in data or "featured_image_key" in data:
+        featured_image_url = data.get("featured_image_url") or None
+        featured_image_key = data.get("featured_image_key") or None
+        featured_image_alt = data.get("featured_image_alt") or None
+        featured_image_width = data.get("featured_image_width") or None
+        featured_image_height = data.get("featured_image_height") or None
+        featured_image_size = data.get("featured_image_size") or None
+        featured_image_mime = data.get("featured_image_mime") or None
+        featured_image_filename = data.get("featured_image_filename") or None
+    else:
+        # Preserve existing image fields if not modified
+        featured_image_url = current.get("featured_image_url")
+        featured_image_key = current.get("featured_image_key")
+        featured_image_alt = data.get("featured_image_alt", current.get("featured_image_alt"))
+        featured_image_width = current.get("featured_image_width")
+        featured_image_height = current.get("featured_image_height")
+        featured_image_size = current.get("featured_image_size")
+        featured_image_mime = current.get("featured_image_mime")
+        featured_image_filename = current.get("featured_image_filename")
+
     query = """
         UPDATE posts
         SET type = %s,
@@ -319,7 +373,15 @@ def update_post(post_id, data):
             external_links = %s,
             seo_title = %s,
             seo_description = %s,
-            continue_reading_slugs = %s
+            continue_reading_slugs = %s,
+            featured_image_url = %s,
+            featured_image_key = %s,
+            featured_image_alt = %s,
+            featured_image_width = %s,
+            featured_image_height = %s,
+            featured_image_size = %s,
+            featured_image_mime = %s,
+            featured_image_filename = %s
         WHERE id = %s
         RETURNING id, slug, type
     """
@@ -338,6 +400,14 @@ def update_post(post_id, data):
         data.get("seo_title") or None,
         data.get("seo_description") or None,
         continue_reading_slugs,
+        featured_image_url,
+        featured_image_key,
+        featured_image_alt,
+        featured_image_width,
+        featured_image_height,
+        featured_image_size,
+        featured_image_mime,
+        featured_image_filename,
         post_id
     )
 
@@ -350,6 +420,18 @@ def update_post(post_id, data):
 
 
 def delete_post(post_id):
+    # If the post has an R2 image, clean it up
+    try:
+        current = get_post_by_id(post_id)
+        if current and current.get("featured_image_key"):
+            from r2_storage import delete_image_from_r2
+            delete_image_from_r2(current["featured_image_key"])
+    except Exception as e:
+        import logging
+        logging.getLogger("made_for_nothing.database.posts").warning(
+            f"Could not clean up R2 image for deleted post {post_id}: {e}"
+        )
+
     query = "DELETE FROM posts WHERE id = %s RETURNING id"
     with get_connection() as conn:
         with conn.cursor() as cur:

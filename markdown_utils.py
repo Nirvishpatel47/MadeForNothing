@@ -107,7 +107,7 @@ def render_markdown_with_toc(text: str):
             },
             'toc': {
                 'title': 'Table of Contents',
-                'toc_depth': '1-1'
+                'toc_depth': '1-6'
             }
         },
         output_format='html5'

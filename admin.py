@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 import db
 import markdown_utils
 import mux_utils
+import r2_storage
+from routers.media import router as media_router
 
 load_dotenv()
 
@@ -67,6 +69,7 @@ ADMIN_TEMPLATES_DIR = os.path.join(BASE_DIR, "admin", "templates")
 
 admin_app.mount("/admin-static", StaticFiles(directory=ADMIN_STATIC_DIR if os.path.isdir(ADMIN_STATIC_DIR) else "admin/static"), name="admin-static")
 templates = Jinja2Templates(directory=ADMIN_TEMPLATES_DIR if os.path.isdir(ADMIN_TEMPLATES_DIR) else "admin/templates")
+admin_app.include_router(media_router)
 
 
 @admin_app.get("/", response_class=HTMLResponse)
@@ -166,6 +169,58 @@ async def create_post_action(request: Request):
     # Parse continue reading slugs (max 3)
     continue_reading_slugs = [s.strip() for s in form_data.getlist("continue_reading_slugs[]") if s.strip()][:3]
 
+    # Featured image fields
+    featured_image_alt = form_data.get("featured_image_alt", "").strip()
+    featured_image_url = form_data.get("featured_image_url", "").strip() or None
+    featured_image_key = form_data.get("featured_image_key", "").strip() or None
+    featured_image_width = int(form_data.get("featured_image_width")) if form_data.get("featured_image_width") else None
+    featured_image_height = int(form_data.get("featured_image_height")) if form_data.get("featured_image_height") else None
+    featured_image_size = int(form_data.get("featured_image_size")) if form_data.get("featured_image_size") else None
+    featured_image_mime = form_data.get("featured_image_mime", "").strip() or None
+    featured_image_filename = form_data.get("featured_image_filename", "").strip() or None
+
+    # Check if a file was uploaded directly via multipart form submission
+    image_file = form_data.get("featured_image_file")
+    if hasattr(image_file, "filename") and image_file.filename:
+        try:
+            file_bytes = await image_file.read()
+            if file_bytes:
+                upload_meta = r2_storage.upload_post_image(
+                    file_bytes=file_bytes,
+                    filename=image_file.filename,
+                    post_type=post_type,
+                    post_slug=slug
+                )
+                featured_image_url = upload_meta["url"]
+                featured_image_key = upload_meta["key"]
+                featured_image_width = upload_meta["width"]
+                featured_image_height = upload_meta["height"]
+                featured_image_size = upload_meta["size"]
+                featured_image_mime = upload_meta["mime"]
+                featured_image_filename = upload_meta["original_filename"]
+        except Exception as img_err:
+            logger.error(f"Error uploading image in create_post: {img_err}")
+            try:
+                available_posts = db.get_all_posts_for_selector()
+            except Exception:
+                available_posts = []
+            return templates.TemplateResponse("form.html", {
+                "request": request,
+                "post": {
+                    "title": title, "slug": slug, "type": post_type,
+                    "excerpt": excerpt, "content_markdown": content_markdown,
+                    "is_published": is_published, "show_on_landing": show_on_landing,
+                    "tags": tags_raw, "external_links": external_links,
+                    "seo_title": seo_title, "seo_description": seo_description,
+                    "continue_reading_slugs": continue_reading_slugs,
+                    "featured_image_alt": featured_image_alt,
+                },
+                "valid_types": db.VALID_TYPES,
+                "available_posts": available_posts,
+                "public_base_url": PUBLIC_BASE_URL,
+                "error": f"Image Upload Error: {img_err}"
+            }, status_code=status.HTTP_400_BAD_REQUEST)
+
     data = {
         "title": title,
         "slug": slug,
@@ -178,7 +233,15 @@ async def create_post_action(request: Request):
         "external_links": external_links,
         "seo_title": seo_title,
         "seo_description": seo_description,
-        "continue_reading_slugs": continue_reading_slugs
+        "continue_reading_slugs": continue_reading_slugs,
+        "featured_image_url": featured_image_url,
+        "featured_image_key": featured_image_key,
+        "featured_image_alt": featured_image_alt or None,
+        "featured_image_width": featured_image_width,
+        "featured_image_height": featured_image_height,
+        "featured_image_size": featured_image_size,
+        "featured_image_mime": featured_image_mime,
+        "featured_image_filename": featured_image_filename
     }
 
     try:
@@ -225,6 +288,10 @@ def edit_post_form(request: Request, post_id: int):
 
 @admin_app.post("/posts/{post_id}/edit", response_class=HTMLResponse)
 async def update_post_action(request: Request, post_id: int):
+    current_post = db.get_post_by_id(post_id)
+    if not current_post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
     form_data = await request.form()
 
     title = form_data.get("title", "").strip()
@@ -251,6 +318,70 @@ async def update_post_action(request: Request, post_id: int):
     # Parse continue reading slugs (max 3)
     continue_reading_slugs = [s.strip() for s in form_data.getlist("continue_reading_slugs[]") if s.strip()][:3]
 
+    # Handle featured image removal or replacement
+    remove_featured_image = form_data.get("remove_featured_image") in ("1", "true", "True")
+    featured_image_alt = form_data.get("featured_image_alt", "").strip()
+    featured_image_url = form_data.get("featured_image_url", "").strip() or None
+    featured_image_key = form_data.get("featured_image_key", "").strip() or None
+    featured_image_width = int(form_data.get("featured_image_width")) if form_data.get("featured_image_width") else None
+    featured_image_height = int(form_data.get("featured_image_height")) if form_data.get("featured_image_height") else None
+    featured_image_size = int(form_data.get("featured_image_size")) if form_data.get("featured_image_size") else None
+    featured_image_mime = form_data.get("featured_image_mime", "").strip() or None
+    featured_image_filename = form_data.get("featured_image_filename", "").strip() or None
+
+    old_key = current_post.get("featured_image_key")
+
+    # Check if a new file was uploaded directly in form
+    image_file = form_data.get("featured_image_file")
+    if hasattr(image_file, "filename") and image_file.filename:
+        try:
+            file_bytes = await image_file.read()
+            if file_bytes:
+                upload_meta = r2_storage.upload_post_image(
+                    file_bytes=file_bytes,
+                    filename=image_file.filename,
+                    post_type=post_type,
+                    post_slug=slug
+                )
+                featured_image_url = upload_meta["url"]
+                featured_image_key = upload_meta["key"]
+                featured_image_width = upload_meta["width"]
+                featured_image_height = upload_meta["height"]
+                featured_image_size = upload_meta["size"]
+                featured_image_mime = upload_meta["mime"]
+                featured_image_filename = upload_meta["original_filename"]
+                # Clean up old key if replaced
+                if old_key and old_key != featured_image_key:
+                    r2_storage.delete_image_from_r2(old_key)
+        except Exception as img_err:
+            logger.error(f"Error uploading image in update_post: {img_err}")
+            try:
+                available_posts = db.get_all_posts_for_selector(exclude_id=post_id)
+            except Exception:
+                available_posts = []
+            return templates.TemplateResponse("form.html", {
+                "request": request,
+                "post": {**current_post, "title": title, "slug": slug, "type": post_type, "excerpt": excerpt, "content_markdown": content_markdown},
+                "valid_types": db.VALID_TYPES,
+                "available_posts": available_posts,
+                "public_base_url": PUBLIC_BASE_URL,
+                "error": f"Image Upload Error: {img_err}"
+            }, status_code=status.HTTP_400_BAD_REQUEST)
+    elif remove_featured_image:
+        if old_key:
+            r2_storage.delete_image_from_r2(old_key)
+        featured_image_url = None
+        featured_image_key = None
+        featured_image_alt = None
+        featured_image_width = None
+        featured_image_height = None
+        featured_image_size = None
+        featured_image_mime = None
+        featured_image_filename = None
+    elif featured_image_key and old_key and featured_image_key != old_key:
+        # Replaced via AJAX upload
+        r2_storage.delete_image_from_r2(old_key)
+
     data = {
         "title": title,
         "slug": slug,
@@ -263,7 +394,16 @@ async def update_post_action(request: Request, post_id: int):
         "external_links": external_links,
         "seo_title": seo_title,
         "seo_description": seo_description,
-        "continue_reading_slugs": continue_reading_slugs
+        "continue_reading_slugs": continue_reading_slugs,
+        "remove_featured_image": remove_featured_image,
+        "featured_image_url": featured_image_url,
+        "featured_image_key": featured_image_key,
+        "featured_image_alt": featured_image_alt or None,
+        "featured_image_width": featured_image_width,
+        "featured_image_height": featured_image_height,
+        "featured_image_size": featured_image_size,
+        "featured_image_mime": featured_image_mime,
+        "featured_image_filename": featured_image_filename
     }
 
     try:
@@ -285,6 +425,75 @@ async def update_post_action(request: Request, post_id: int):
             "public_base_url": PUBLIC_BASE_URL,
             "error": f"Error updating post: {e}"
         }, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@admin_app.post("/api/upload-image")
+async def api_upload_image(request: Request):
+    """
+    Asynchronous image upload endpoint for the admin portal.
+    Receives file, validates, converts to WebP, uploads to Cloudflare R2,
+    and returns metadata.
+    """
+    try:
+        form = await request.form()
+        image_file = form.get("file")
+        if not image_file or not hasattr(image_file, "filename") or not image_file.filename:
+            return JSONResponse(
+                {"success": False, "error": "No image file provided in upload request."},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        post_type = form.get("type", "writing")
+        post_slug = form.get("slug", "")
+
+        file_bytes = await image_file.read()
+        if not file_bytes:
+            return JSONResponse(
+                {"success": False, "error": "Uploaded image file is empty."},
+                status_code=status.HTTP_400_BAD_REQUEST
+            )
+
+        upload_meta = r2_storage.upload_post_image(
+            file_bytes=file_bytes,
+            filename=image_file.filename,
+            post_type=post_type,
+            post_slug=post_slug
+        )
+
+        return JSONResponse(upload_meta)
+    except r2_storage.ImageValidationError as e:
+        logger.warning(f"Admin image validation error: {e}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=status.HTTP_400_BAD_REQUEST)
+    except r2_storage.R2ConfigurationError as e:
+        logger.error(f"Cloudflare R2 configuration error: {e}")
+        return JSONResponse(
+            {"success": False, "error": f"Cloudflare R2 is not configured: {e}"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+    except Exception as e:
+        logger.error(f"Unexpected image upload failure: {e}", exc_info=True)
+        return JSONResponse(
+            {"success": False, "error": f"Upload failed: {str(e)}"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+
+@admin_app.post("/api/delete-image")
+async def api_delete_image(request: Request):
+    """
+    Endpoint to delete an uploaded image from Cloudflare R2 by key.
+    """
+    try:
+        data = await request.json()
+        key = data.get("key", "").strip()
+        if not key:
+            return JSONResponse({"success": False, "error": "Missing object key."}, status_code=status.HTTP_400_BAD_REQUEST)
+
+        success = r2_storage.delete_image_from_r2(key)
+        return JSONResponse({"success": success})
+    except Exception as e:
+        logger.error(f"Failed to delete image: {e}")
+        return JSONResponse({"success": False, "error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 @admin_app.post("/posts/{post_id}/toggle-publish")

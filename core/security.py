@@ -32,7 +32,7 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.gstatic.com https://cdn.jsdelivr.net https://apis.google.com; "
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
             "font-src 'self' https://fonts.gstatic.com data:; "
-            "img-src 'self' data: blob: https: https://image.mux.com https://*.mux.com; "
+            "img-src 'self' data: blob: https: https://image.mux.com https://*.mux.com https://*.r2.dev https://*.cloudflarestorage.com; "
             "media-src 'self' blob: https: https://stream.mux.com https://*.mux.com; "
             "connect-src 'self' blob: https://*.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://*.firebaseio.com https://*.firebaseapp.com https://api.mux.com https://stream.mux.com https://*.mux.com https://*.litix.io; "
             "frame-src 'self' https://*.firebaseapp.com https://*.firebase.com https://accounts.google.com; "

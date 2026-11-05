@@ -19,6 +19,7 @@ from routers import (
     lessons_router,
     auth_router,
     public_router,
+    media_router,
 )
 from routers.public import render_404
 
@@ -97,6 +98,7 @@ app.include_router(courses_router)
 app.include_router(payments_router)
 app.include_router(lessons_router)
 app.include_router(auth_router)
+app.include_router(media_router)
 app.include_router(public_router)
 
 
