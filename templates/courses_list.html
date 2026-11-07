@@ -1,10 +1,294 @@
 {% extends "base.html" %}
 
-{% block title %}Courses &mdash; MADE FOR NOTHING{% endblock %}
+{% block title %}
+  {% if active_section %}
+    {{ active_section.name }} &mdash; Courses &mdash; MADE FOR NOTHING
+  {% else %}
+    Courses &mdash; MADE FOR NOTHING
+  {% endif %}
+{% endblock %}
 
-{% block description %}Deliberate, in-depth curriculum and technical video explorations.{% endblock %}
+{% block description %}
+  {% if active_section and active_section.description %}
+    {{ active_section.description }}
+  {% else %}
+    Deliberate, in-depth curriculum and technical video explorations.
+  {% endif %}
+{% endblock %}
 
 {% block content %}
+<style>
+  .section-pills-wrapper {
+    margin-top: 1.5rem;
+    margin-bottom: 0.25rem;
+    position: relative;
+    width: 100%;
+  }
+  .section-pills-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 0.2rem 0.2rem 0.6rem 0;
+  }
+  .section-pills-bar::-webkit-scrollbar {
+    display: none;
+  }
+  .section-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.32rem 0.82rem;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    color: var(--text-dim, #888);
+    background-color: transparent;
+    border: 1px solid var(--border, #333);
+    border-radius: 9999px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 160ms ease;
+    flex-shrink: 0;
+    user-select: none;
+    line-height: 1.35;
+  }
+  .section-pill:hover {
+    color: var(--text, #fff);
+    border-color: var(--border-hover, #666);
+    background-color: var(--bg-subtle, #222);
+  }
+  .section-pill.active {
+    color: var(--bg, #111) !important;
+    background-color: var(--text, #fff) !important;
+    border-color: var(--text, #fff) !important;
+    font-weight: 600;
+  }
+  .section-pill-more {
+    border-style: dashed;
+    background-color: transparent;
+    color: var(--text-dim, #888);
+  }
+  .section-pill-more:hover {
+    border-style: solid;
+    border-color: var(--border-hover, #666);
+    color: var(--text, #fff);
+  }
+  .section-active-filter-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 0.85rem;
+    padding: 0.45rem 0.8rem;
+    background-color: var(--bg-subtle, #1c1c1b);
+    border: 1px solid var(--border-subtle, #282828);
+    border-radius: var(--radius, 3px);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    color: var(--text-muted, #999);
+  }
+  .section-active-filter-bar strong {
+    color: var(--text, #eee);
+    font-weight: 600;
+  }
+  .section-active-filter-bar .active-filter-desc {
+    font-family: var(--font-serif, serif);
+    font-style: italic;
+    color: var(--text-dim, #777);
+  }
+  .section-clear-filter {
+    margin-left: auto;
+    font-family: var(--font-mono, monospace);
+    font-size: 0.7rem;
+    color: var(--text-muted, #999);
+    text-decoration: none;
+    padding: 0.1rem 0.45rem;
+    border: 1px solid var(--border, #333);
+    border-radius: var(--radius, 3px);
+    transition: all 160ms ease;
+  }
+  .section-clear-filter:hover {
+    color: var(--text, #fff);
+    border-color: var(--text-muted, #888);
+    background-color: var(--bg-surface, #222);
+  }
+  .section-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+  .section-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 9, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  .section-modal-container {
+    position: relative;
+    width: min(520px, calc(100vw - 2rem));
+    max-height: min(600px, calc(100vh - 4rem));
+    background-color: var(--bg-surface, #1c1b1a);
+    border: 1px solid var(--border, #333);
+    border-radius: 8px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    z-index: 10000;
+    animation: modalIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .section-modal-header {
+    padding: 1.15rem 1.25rem 0.85rem;
+    border-bottom: 1px solid var(--border-subtle, #282828);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+  }
+  .section-modal-header h3 {
+    font-family: var(--font-serif, serif);
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--text, #fff);
+    margin: 0;
+    line-height: 1.2;
+  }
+  .section-modal-header p {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 0.78rem;
+    color: var(--text-muted, #999);
+    margin: 0.25rem 0 0;
+  }
+  .section-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--text-dim, #777);
+    font-family: var(--font-mono, monospace);
+    font-size: 1.35rem;
+    cursor: pointer;
+    padding: 0.1rem 0.4rem;
+    line-height: 1;
+    border-radius: var(--radius, 3px);
+  }
+  .section-modal-close:hover {
+    color: var(--text, #fff);
+    background-color: var(--bg-subtle, #222);
+  }
+  .section-modal-search {
+    padding: 0.75rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle, #282828);
+    background-color: var(--bg, #161615);
+  }
+  .section-modal-search .section-search-field {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    font-family: var(--font-sans, sans-serif);
+    font-size: 0.86rem;
+    background-color: var(--bg-surface, #1c1b1a);
+    border: 1px solid var(--border, #333);
+    border-radius: var(--radius, 3px);
+    color: var(--text, #fff);
+    outline: none;
+    box-sizing: border-box;
+  }
+  .section-modal-search .section-search-field:focus {
+    border-color: var(--border-hover, #666);
+  }
+  .section-modal-list {
+    padding: 0.5rem 0.75rem;
+    overflow-y: auto;
+    flex: 1;
+    max-height: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .section-modal-item {
+    display: block;
+    padding: 0.7rem 0.85rem;
+    border-radius: var(--radius, 3px);
+    text-decoration: none;
+    background-color: transparent;
+    border: 1px solid transparent;
+    transition: all 160ms ease;
+  }
+  .section-modal-item:hover {
+    background-color: var(--bg-subtle, #222);
+    border-color: var(--border-subtle, #333);
+  }
+  .section-modal-item.active {
+    background-color: var(--bg-accent, #2c2a27);
+    border-color: var(--border, #444);
+  }
+  .section-modal-item-title {
+    font-family: var(--font-sans, sans-serif);
+    font-size: 0.92rem;
+    font-weight: 500;
+    color: var(--text, #fff);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .section-modal-featured-badge {
+    font-size: 0.62rem;
+    font-family: var(--font-mono, monospace);
+    font-weight: 500;
+    text-transform: uppercase;
+    color: var(--text-dim, #888);
+    background-color: var(--bg-subtle, #222);
+    border: 1px solid var(--border-subtle, #333);
+    padding: 0.1rem 0.35rem;
+    border-radius: var(--radius, 3px);
+  }
+  .section-modal-item-desc {
+    font-family: var(--font-serif, serif);
+    font-style: italic;
+    font-size: 0.82rem;
+    color: var(--text-muted, #999);
+    margin-top: 0.2rem;
+    line-height: 1.4;
+  }
+  .section-modal-footer {
+    padding: 0.75rem 1.25rem;
+    border-top: 1px solid var(--border-subtle, #282828);
+    background-color: var(--bg-subtle, #1c1c1b);
+    display: flex;
+    justify-content: flex-end;
+  }
+  .section-modal-footer a {
+    font-family: var(--font-mono, monospace);
+    font-size: 0.72rem;
+    color: var(--text-muted, #999);
+    text-decoration: none;
+  }
+  .section-modal-footer a:hover {
+    color: var(--text, #fff);
+  }
+  @media (max-width: 768px) {
+    .section-pills-bar {
+      gap: 0.35rem;
+      padding-right: 1.5rem;
+    }
+    .section-pill {
+      padding: 0.3rem 0.7rem;
+      font-size: 0.7rem;
+    }
+    .section-modal-container {
+      width: calc(100vw - 1.5rem);
+      max-height: calc(100vh - 2.5rem);
+    }
+  }
+</style>
+
 <header class="archive-view-header">
   <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
     <div>
@@ -13,6 +297,10 @@
         {% if courses %}
           <span class="meta-dot">&bull;</span>
           <span>{{ courses|length }} {{ "curriculum" if courses|length == 1 else "curricula" }}</span>
+        {% endif %}
+        {% if active_section %}
+          <span class="meta-dot">&bull;</span>
+          <span style="color: var(--text); font-weight: 500;">Section: {{ active_section.name }}</span>
         {% endif %}
       </div>
       <h1 class="archive-view-title">Courses</h1>
@@ -26,6 +314,72 @@
       </div>
     {% endif %}
   </div>
+
+  <!-- Thematic Section Discovery Pill Bar for Courses -->
+  {% if featured_sections or all_type_sections %}
+    <div class="section-pills-wrapper">
+      <nav class="section-pills-bar" aria-label="Filter courses by discovery section">
+        <a 
+          href="/courses" 
+          class="section-pill {% if not active_section %}active{% endif %}"
+          {% if not active_section %}aria-current="page"{% endif %}
+        >
+          All
+        </a>
+
+        {% for sec in featured_sections %}
+          <a 
+            href="/courses/section/{{ sec.slug }}" 
+            class="section-pill {% if active_section and active_section.slug == sec.slug %}active{% endif %}"
+            {% if active_section and active_section.slug == sec.slug %}aria-current="page"{% endif %}
+            title="{{ sec.description or sec.name }}"
+          >
+            {{ sec.name }}
+          </a>
+        {% endfor %}
+
+        {% if active_section %}
+          {% set featured_slugs = featured_sections|map(attribute='slug')|list %}
+          {% if active_section.slug not in featured_slugs %}
+            <a 
+              href="/courses/section/{{ active_section.slug }}" 
+              class="section-pill active"
+              aria-current="page"
+            >
+              {{ active_section.name }}
+            </a>
+          {% endif %}
+        {% endif %}
+
+        {% if all_type_sections and all_type_sections|length > 3 %}
+          <button 
+            type="button" 
+            id="open-course-section-explorer-btn" 
+            class="section-pill section-pill-more"
+            aria-label="View all course discovery sections"
+            title="Browse all sections"
+          >
+            <span>More</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-left: 1px;">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+          </button>
+        {% endif %}
+      </nav>
+    </div>
+
+    {% if active_section %}
+      <div class="section-active-filter-bar">
+        <span>Filtering by <strong>{{ active_section.name }}</strong></span>
+        {% if active_section.description %}
+          <span class="active-filter-desc">&mdash; {{ active_section.description }}</span>
+        {% endif %}
+        <a href="/courses" class="section-clear-filter" title="Clear section filter">
+          &times; Clear filter
+        </a>
+      </div>
+    {% endif %}
+  {% endif %}
 </header>
 
 <section>
@@ -62,17 +416,148 @@
           </div>
 
           <div class="archive-card-bottom">
-            <span class="tag" style="text-transform: uppercase;">Self-Paced</span>
-            <a href="/courses/{{ course.slug }}" class="btn-card-explore" style="margin-left: auto;">
-              <span>Explore Syllabus</span>
-              <span class="btn-arrow">&rarr;</span>
+            <a href="/courses/{{ course.slug }}" class="editorial-link" style="margin-left: auto;">
+              Explore Curriculum &rarr;
             </a>
           </div>
         </article>
       {% endfor %}
     </div>
   {% else %}
-    <p class="empty-state">No courses are published at this time. Check back soon.</p>
+    <div class="empty-state-card" style="padding: 3rem 1.5rem; text-align: center; background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--radius, 3px); margin: 1.5rem 0;">
+      <p style="font-size: 1.05rem; color: var(--text); margin: 0 0 0.5rem; font-weight: 500;">
+        {% if active_section %}
+          No published courses in "{{ active_section.name }}" yet.
+        {% else %}
+          No published courses available yet.
+        {% endif %}
+      </p>
+      {% if active_section %}
+        <p style="font-size: 0.88rem; color: var(--text-muted); margin: 0 0 1.25rem;">
+          Try browsing all courses or exploring another thematic section.
+        </p>
+        <a href="/courses" class="btn-studio-browse" style="display: inline-block;">
+          View All Courses &rarr;
+        </a>
+      {% endif %}
+    </div>
   {% endif %}
 </section>
+
+<!-- Course Section Explorer Modal (Hidden by Default) -->
+{% if all_type_sections %}
+<div id="course-section-explorer-modal" class="section-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="course-section-modal-title">
+  <div class="section-modal-backdrop" id="course-section-modal-backdrop"></div>
+  <div class="section-modal-container">
+    <div class="section-modal-header">
+      <div>
+        <h3 id="course-section-modal-title">
+          Explore Course Sections
+        </h3>
+        <p>
+          Select a discovery section or search across themes
+        </p>
+      </div>
+      <button type="button" id="close-course-section-explorer-btn" class="section-modal-close" aria-label="Close dialog">&times;</button>
+    </div>
+
+    <div class="section-modal-search">
+      <input 
+        type="text" 
+        id="modal-course-section-search" 
+        class="section-search-field" 
+        placeholder="Type to filter sections..." 
+        aria-label="Filter course sections"
+      >
+    </div>
+
+    <div class="section-modal-list" id="modal-course-sections-list">
+      <a href="/courses" class="section-modal-item {% if not active_section %}active{% endif %}">
+        <div class="section-modal-item-title">
+          <span>All Courses</span>
+        </div>
+        <div class="section-modal-item-desc">Show all course curricula across every section</div>
+      </a>
+
+      {% for sec in all_type_sections %}
+        <a 
+          href="/courses/section/{{ sec.slug }}" 
+          class="section-modal-item {% if active_section and active_section.slug == sec.slug %}active{% endif %}"
+          data-name="{{ sec.name|lower }}"
+          data-desc="{{ (sec.description or '')|lower }}"
+        >
+          <div class="section-modal-item-title">
+            <span>{{ sec.name }}</span>
+            {% if sec.is_featured %}
+              <span class="section-modal-featured-badge">★ Top</span>
+            {% endif %}
+          </div>
+          {% if sec.description %}
+            <div class="section-modal-item-desc">{{ sec.description }}</div>
+          {% endif %}
+        </a>
+      {% endfor %}
+    </div>
+
+    <div class="section-modal-footer">
+      <a href="/sections">
+        Browse All Thematic Archives &rarr;
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    const modal = document.getElementById('course-section-explorer-modal');
+    const openBtn = document.getElementById('open-course-section-explorer-btn');
+    const closeBtn = document.getElementById('close-course-section-explorer-btn');
+    const backdrop = document.getElementById('course-section-modal-backdrop');
+    const searchInput = document.getElementById('modal-course-section-search');
+    const items = document.querySelectorAll('#modal-course-sections-list .section-modal-item[data-name]');
+
+    function openModal() {
+      if (!modal) return;
+      modal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      if (searchInput) {
+        setTimeout(() => searchInput.focus(), 50);
+      }
+    }
+
+    function closeModal() {
+      if (!modal) return;
+      modal.style.display = 'none';
+      document.body.style.overflow = '';
+      if (searchInput) searchInput.value = '';
+      items.forEach(el => el.style.display = '');
+    }
+
+    if (openBtn) openBtn.addEventListener('click', openModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (backdrop) backdrop.addEventListener('click', closeModal);
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+        closeModal();
+      }
+    });
+
+    if (searchInput) {
+      searchInput.addEventListener('input', function() {
+        const q = this.value.trim().toLowerCase();
+        items.forEach(el => {
+          const name = el.getAttribute('data-name') || '';
+          const desc = el.getAttribute('data-desc') || '';
+          if (!q || name.includes(q) || desc.includes(q)) {
+            el.style.display = '';
+          } else {
+            el.style.display = 'none';
+          }
+        });
+      });
+    }
+  })();
+</script>
+{% endif %}
 {% endblock %}

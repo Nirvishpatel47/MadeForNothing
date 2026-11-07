@@ -3,6 +3,7 @@ Course Discovery & Student Dashboard Routes for MADE FOR NOTHING.
 Handles public course listings, detailed syllabus previews, and enrolled student studio dashboard.
 """
 import logging
+from typing import Optional
 from fastapi import APIRouter, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
@@ -19,20 +20,50 @@ templates = Jinja2Templates(directory=settings.TEMPLATES_DIR)
 
 @router.get("/course", response_class=HTMLResponse)
 @router.get("/courses", response_class=HTMLResponse)
-def list_courses(request: Request):
+@router.get("/courses/section/{section_slug}", response_class=HTMLResponse)
+def list_courses(request: Request, section_slug: Optional[str] = None):
     current_user = auth.get_current_user_optional(request)
+
+    # Check query parameter ?section=...
+    if not section_slug:
+        section_slug = request.query_params.get("section")
+    if section_slug:
+        section_slug = section_slug.strip().lower()
+
+    active_section = None
+    if section_slug:
+        try:
+            active_section = db.get_section_by_slug(section_slug)
+        except Exception as e:
+            logger.error(f"Error fetching section by slug {section_slug}: {e}")
+
     try:
-        courses = db.get_published_courses()
+        courses = db.get_published_courses(section_slug=section_slug if active_section else None)
     except Exception as e:
         logger.error(f"Error fetching courses: {e}")
         courses = []
+
+    try:
+        featured_sections = db.get_featured_sections_for_type("courses", limit=4)
+        all_type_sections = db.get_sections_for_type("courses")
+    except Exception as e:
+        logger.error(f"Error fetching sections for courses: {e}")
+        featured_sections = []
+        all_type_sections = []
+
+    canonical_url = f"{settings.BASE_URL}/courses"
+    if active_section:
+        canonical_url = f"{settings.BASE_URL}/courses/section/{active_section['slug']}"
 
     return templates.TemplateResponse("courses_list.html", {
         "request": request,
         "current_user": current_user,
         "current_type": "courses",
         "courses": courses,
-        "canonical_url": f"{settings.BASE_URL}/courses",
+        "active_section": active_section,
+        "featured_sections": featured_sections,
+        "all_type_sections": all_type_sections,
+        "canonical_url": canonical_url,
         "base_url": settings.BASE_URL
     })
 

@@ -104,6 +104,27 @@
           <label for="is_published" style="font-size: 0.85rem; font-weight: 600;">Published Publicly</label>
         </div>
 
+        <!-- Content Discovery Sections -->
+        <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--admin-border);">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+            <label style="font-weight: 600; font-size: 0.85rem; margin: 0;">Discovery Sections</label>
+            <a href="/sections" target="_blank" style="font-size: 0.72rem; color: var(--admin-muted); text-decoration: none;">+ Manage &nearr;</a>
+          </div>
+          {% if sections %}
+            <div style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 180px; overflow-y: auto; padding-right: 0.25rem;">
+              {% for sec in sections %}
+                {% set is_selected = sec.id in selected_section_ids if selected_section_ids else false %}
+                <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; cursor: pointer; margin: 0;">
+                  <input type="checkbox" name="section_ids[]" value="{{ sec.id }}" {% if is_selected %}checked{% endif %}>
+                  <span>{{ sec.name }}</span>
+                </label>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div style="font-size: 0.75rem; color: var(--admin-muted);">No sections created yet.</div>
+          {% endif %}
+        </div>
+
         <div style="margin-top: 1.5rem; display: flex; flex-direction: column; gap: 0.5rem;">
           <button type="submit" class="btn btn-primary" style="width: 100%;">
             {{ "Save Changes" if course else "Create Course" }}

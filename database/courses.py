@@ -7,13 +7,23 @@ from datetime import datetime, timezone
 from .connection import get_connection, _format_row
 
 
-def get_published_courses():
-    """Returns all published courses along with lesson count and estimated total duration."""
-    query = """
+def get_published_courses(section_slug=None):
+    """Returns all published courses along with lesson count and estimated total duration, optionally filtered by section slug."""
+    params = []
+    join_clause = ""
+    if section_slug:
+        join_clause = """
+            INNER JOIN course_sections cs ON cs.course_id = c.id
+            INNER JOIN sections s ON s.id = cs.section_id AND s.slug = %s AND s.is_published = TRUE
+        """
+        params.append(section_slug.strip().lower())
+
+    query = f"""
         SELECT c.*,
                COUNT(cl.id) FILTER (WHERE cl.is_published = TRUE) AS lesson_count,
                COALESCE(SUM(cl.duration_seconds) FILTER (WHERE cl.is_published = TRUE), 0) AS total_duration_seconds
         FROM courses c
+        {join_clause}
         LEFT JOIN course_lessons cl ON c.id = cl.course_id
         WHERE c.is_published = TRUE
         GROUP BY c.id
@@ -21,7 +31,7 @@ def get_published_courses():
     """
     with get_connection() as conn:
         with conn.cursor() as cur:
-            cur.execute(query)
+            cur.execute(query, tuple(params))
             rows = cur.fetchall()
             return [_format_row(r) for r in rows]
 

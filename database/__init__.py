@@ -107,6 +107,26 @@ from .progress import (
     get_course_progress_for_user,
     save_lesson_progress,
 )
+from .sections import (
+    get_all_sections_admin,
+    get_section_by_id,
+    get_section_by_slug,
+    create_section,
+    update_section,
+    delete_section,
+    toggle_section_publish,
+    reorder_sections,
+    get_sections_for_type,
+    get_featured_sections_for_type,
+    get_sections_for_post,
+    get_section_ids_for_post,
+    set_post_sections,
+    get_sections_for_course,
+    get_section_ids_for_course,
+    set_course_sections,
+    seed_default_sections_if_empty,
+    VALID_SECTION_TYPES,
+)
 
 __all__ = [
     # Connection & Pool
@@ -196,4 +216,23 @@ __all__ = [
     "get_lesson_progress",
     "get_course_progress_for_user",
     "save_lesson_progress",
+    # Sections & Content Discovery
+    "get_all_sections_admin",
+    "get_section_by_id",
+    "get_section_by_slug",
+    "create_section",
+    "update_section",
+    "delete_section",
+    "toggle_section_publish",
+    "reorder_sections",
+    "get_sections_for_type",
+    "get_featured_sections_for_type",
+    "get_sections_for_post",
+    "get_section_ids_for_post",
+    "set_post_sections",
+    "get_sections_for_course",
+    "get_section_ids_for_course",
+    "set_course_sections",
+    "seed_default_sections_if_empty",
+    "VALID_SECTION_TYPES",
 ]

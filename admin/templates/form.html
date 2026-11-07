@@ -212,6 +212,49 @@
     </div>
   </div>
 
+  <!-- Content Discovery Sections Selection -->
+  <div class="form-card" style="margin-bottom: 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.5rem;">
+      <label style="font-weight: 600; font-size: 0.95rem; margin: 0;">
+        Discovery Sections (Thematic Categories)
+      </label>
+      <a href="/sections" target="_blank" style="font-size: 0.78rem; color: var(--admin-muted); text-decoration: none;">
+        + Manage Sections &nearr;
+      </a>
+    </div>
+    <p class="form-hint" style="margin-bottom: 0.75rem;">
+      Assign this entry to one or more discovery sections. Readers can explore and filter related articles by these themes.
+    </p>
+
+    {% if sections %}
+      <div id="section-checkboxes-container" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.6rem;">
+        {% for sec in sections %}
+          {% set is_selected = sec.id in selected_section_ids if selected_section_ids else false %}
+          <label class="section-option-label" data-types="{{ sec.content_types|join(',') if sec.content_types else 'all' }}" style="display: flex; align-items: flex-start; gap: 0.6rem; background: #fafafa; padding: 0.6rem 0.75rem; border: 1px solid var(--admin-border); border-radius: 4px; cursor: pointer; margin: 0;">
+            <input type="checkbox" name="section_ids[]" value="{{ sec.id }}" {% if is_selected %}checked{% endif %} style="width: 1.1rem; height: 1.1rem; margin-top: 0.15rem;">
+            <div style="min-width: 0;">
+              <div style="font-size: 0.88rem; font-weight: 600; color: var(--admin-text); line-height: 1.2;">
+                {{ sec.name }}
+                {% if sec.is_featured %}
+                  <span style="font-size: 0.68rem; color: #b78103; margin-left: 0.25rem;">★ Top Bar</span>
+                {% endif %}
+              </div>
+              {% if sec.description %}
+                <div style="font-size: 0.72rem; color: var(--admin-muted); margin-top: 0.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                  {{ sec.description }}
+                </div>
+              {% endif %}
+            </div>
+          </label>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="font-size: 0.85rem; color: var(--admin-muted); padding: 0.5rem 0;">
+        No discovery sections created yet. <a href="/sections/new" target="_blank" style="text-decoration: underline;">Create your first section &nearr;</a>
+      </div>
+    {% endif %}
+  </div>
+
   <!-- Tags & External Links -->
   <div class="form-grid form-grid-2" style="margin-bottom: 1.5rem;">
     <div class="form-card">

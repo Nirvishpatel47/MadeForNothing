@@ -102,16 +102,46 @@ def about(request: Request):
     })
 
 
-def _render_type_list(request: Request, post_type: str) -> HTMLResponse:
+def _render_type_list(request: Request, post_type: str, section_slug: Optional[str] = None) -> HTMLResponse:
     current_user = auth.get_current_user_optional(request)
     meta = TYPE_METADATA.get(post_type, {"title": post_type.capitalize(), "description": ""})
+
+    # Check query parameter ?section=...
+    if not section_slug:
+        section_slug = request.query_params.get("section")
+    if section_slug:
+        section_slug = section_slug.strip().lower()
+
+    active_section = None
+    if section_slug:
+        try:
+            active_section = db.get_section_by_slug(section_slug)
+        except Exception as e:
+            logger.error(f"Error fetching section by slug {section_slug}: {e}")
+
     try:
-        posts = db.get_published_posts(post_type=post_type, limit=50)
+        posts = db.get_published_posts(
+            post_type=post_type,
+            section_slug=section_slug if active_section else None,
+            limit=50
+        )
         for p in posts:
             p["reading_time"] = markdown_utils.calculate_reading_time(p.get("content_markdown", ""))
     except Exception as e:
         logger.error(f"Database error fetching {post_type}: {e}")
         posts = []
+
+    try:
+        featured_sections = db.get_featured_sections_for_type(post_type, limit=4)
+        all_type_sections = db.get_sections_for_type(post_type)
+    except Exception as e:
+        logger.error(f"Error fetching discovery sections for {post_type}: {e}")
+        featured_sections = []
+        all_type_sections = []
+
+    canonical_url = f"{settings.BASE_URL}/{post_type}"
+    if active_section:
+        canonical_url = f"{settings.BASE_URL}/{post_type}/section/{active_section['slug']}"
 
     return templates.TemplateResponse("list.html", {
         "request": request,
@@ -119,35 +149,98 @@ def _render_type_list(request: Request, post_type: str) -> HTMLResponse:
         "current_type": post_type,
         "type_title": meta["title"],
         "type_description": meta["description"],
-        "canonical_url": f"{settings.BASE_URL}/{post_type}",
+        "active_section": active_section,
+        "featured_sections": featured_sections,
+        "all_type_sections": all_type_sections,
+        "canonical_url": canonical_url,
         "base_url": settings.BASE_URL,
         "posts": posts
     })
 
 
 @router.get("/writing", response_class=HTMLResponse)
-def list_writing(request: Request):
-    return _render_type_list(request, "writing")
+@router.get("/writing/section/{section_slug}", response_class=HTMLResponse)
+def list_writing(request: Request, section_slug: Optional[str] = None):
+    return _render_type_list(request, "writing", section_slug=section_slug)
 
 
 @router.get("/research", response_class=HTMLResponse)
-def list_research(request: Request):
-    return _render_type_list(request, "research")
+@router.get("/research/section/{section_slug}", response_class=HTMLResponse)
+def list_research(request: Request, section_slug: Optional[str] = None):
+    return _render_type_list(request, "research", section_slug=section_slug)
 
 
 @router.get("/experiments", response_class=HTMLResponse)
-def list_experiments(request: Request):
-    return _render_type_list(request, "experiments")
+@router.get("/experiments/section/{section_slug}", response_class=HTMLResponse)
+def list_experiments(request: Request, section_slug: Optional[str] = None):
+    return _render_type_list(request, "experiments", section_slug=section_slug)
 
 
 @router.get("/projects", response_class=HTMLResponse)
-def list_projects(request: Request):
-    return _render_type_list(request, "projects")
+@router.get("/projects/section/{section_slug}", response_class=HTMLResponse)
+def list_projects(request: Request, section_slug: Optional[str] = None):
+    return _render_type_list(request, "projects", section_slug=section_slug)
 
 
 @router.get("/books", response_class=HTMLResponse)
-def list_books(request: Request):
-    return _render_type_list(request, "books")
+@router.get("/books/section/{section_slug}", response_class=HTMLResponse)
+def list_books(request: Request, section_slug: Optional[str] = None):
+    return _render_type_list(request, "books", section_slug=section_slug)
+
+
+# --- Dedicated Content Discovery Sections Routes ---
+
+@router.get("/sections", response_class=HTMLResponse)
+def list_sections_explorer(request: Request):
+    current_user = auth.get_current_user_optional(request)
+    try:
+        sections = db.get_all_sections_admin()
+        public_sections = [s for s in sections if s.get("is_published", True)]
+    except Exception as e:
+        logger.error(f"Error fetching sections for explorer: {e}")
+        public_sections = []
+
+    return templates.TemplateResponse("sections_explorer.html", {
+        "request": request,
+        "current_user": current_user,
+        "current_type": "sections",
+        "sections": public_sections,
+        "canonical_url": f"{settings.BASE_URL}/sections",
+        "base_url": settings.BASE_URL
+    })
+
+
+@router.get("/sections/{section_slug}", response_class=HTMLResponse)
+def view_section_archive(request: Request, section_slug: str):
+    current_user = auth.get_current_user_optional(request)
+    section = db.get_section_by_slug(section_slug)
+    if not section or not section.get("is_published", True):
+        return render_404(request)
+
+    try:
+        posts = db.get_published_posts(section_slug=section_slug, limit=50)
+        for p in posts:
+            p["reading_time"] = markdown_utils.calculate_reading_time(p.get("content_markdown", ""))
+    except Exception as e:
+        logger.error(f"Database error fetching posts for section {section_slug}: {e}")
+        posts = []
+
+    try:
+        courses = db.get_published_courses(section_slug=section_slug)
+    except Exception as e:
+        logger.error(f"Database error fetching courses for section {section_slug}: {e}")
+        courses = []
+
+    return templates.TemplateResponse("section_detail.html", {
+        "request": request,
+        "current_user": current_user,
+        "current_type": "sections",
+        "section": section,
+        "posts": posts,
+        "courses": courses,
+        "canonical_url": f"{settings.BASE_URL}/sections/{section_slug}",
+        "base_url": settings.BASE_URL
+    })
 
 
 # --- SEO & Core System Routes ---

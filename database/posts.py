@@ -50,19 +50,35 @@ def get_recent_published_posts(limit=5, exclude_slugs=None):
             return [_format_row(r) for r in rows]
 
 
-def get_published_posts(post_type=None, limit=50, offset=0):
-    query = """
-        SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, tags, external_links,
-               featured_image_url, featured_image_alt, featured_image_width, featured_image_height
-        FROM posts
-        WHERE is_published = TRUE
-    """
+def get_published_posts(post_type=None, section_slug=None, limit=50, offset=0):
     params = []
-    if post_type:
-        query += " AND type = %s"
-        params.append(post_type)
-    query += " ORDER BY published_at DESC, created_at DESC LIMIT %s OFFSET %s"
-    params.extend([limit, offset])
+    if section_slug:
+        query = """
+            SELECT DISTINCT p.id, p.type, p.title, p.slug, p.excerpt, p.content_markdown, p.is_published, p.show_on_landing, p.published_at, p.created_at, p.tags, p.external_links,
+                   p.featured_image_url, p.featured_image_alt, p.featured_image_width, p.featured_image_height
+            FROM posts p
+            INNER JOIN post_sections ps ON ps.post_id = p.id
+            INNER JOIN sections s ON s.id = ps.section_id
+            WHERE p.is_published = TRUE AND s.slug = %s AND s.is_published = TRUE
+        """
+        params.append(section_slug.strip().lower())
+        if post_type:
+            query += " AND p.type = %s"
+            params.append(post_type)
+        query += " ORDER BY p.published_at DESC, p.created_at DESC LIMIT %s OFFSET %s"
+        params.extend([limit, offset])
+    else:
+        query = """
+            SELECT id, type, title, slug, excerpt, content_markdown, is_published, show_on_landing, published_at, created_at, tags, external_links,
+                   featured_image_url, featured_image_alt, featured_image_width, featured_image_height
+            FROM posts
+            WHERE is_published = TRUE
+        """
+        if post_type:
+            query += " AND type = %s"
+            params.append(post_type)
+        query += " ORDER BY published_at DESC, created_at DESC LIMIT %s OFFSET %s"
+        params.extend([limit, offset])
 
     with get_connection() as conn:
         with conn.cursor() as cur:

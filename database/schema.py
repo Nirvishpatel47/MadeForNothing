@@ -199,6 +199,45 @@ def init_db():
     CREATE INDEX IF NOT EXISTS idx_student_responses_user ON student_question_responses (user_id);
     CREATE INDEX IF NOT EXISTS idx_student_responses_question ON student_question_responses (question_id);
     CREATE INDEX IF NOT EXISTS idx_student_responses_lesson ON student_question_responses (lesson_id);
+
+    -- =========================================================================
+    -- SECTION-BASED CONTENT DISCOVERY SCHEMA
+    -- =========================================================================
+
+    CREATE TABLE IF NOT EXISTS sections (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        slug VARCHAR(100) NOT NULL UNIQUE,
+        description TEXT DEFAULT '',
+        content_types TEXT[] DEFAULT '{}',
+        sort_order INTEGER NOT NULL DEFAULT 0,
+        is_published BOOLEAN NOT NULL DEFAULT TRUE,
+        is_featured BOOLEAN NOT NULL DEFAULT FALSE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS post_sections (
+        post_id INTEGER NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+        section_id INTEGER NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (post_id, section_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS course_sections (
+        course_id INTEGER NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+        section_id INTEGER NOT NULL REFERENCES sections(id) ON DELETE CASCADE,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (course_id, section_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_sections_slug ON sections (slug);
+    CREATE INDEX IF NOT EXISTS idx_sections_sort ON sections (sort_order ASC, name ASC);
+    CREATE INDEX IF NOT EXISTS idx_sections_published ON sections (is_published, sort_order ASC);
+    CREATE INDEX IF NOT EXISTS idx_post_sections_post_id ON post_sections (post_id);
+    CREATE INDEX IF NOT EXISTS idx_post_sections_section_id ON post_sections (section_id);
+    CREATE INDEX IF NOT EXISTS idx_course_sections_course_id ON course_sections (course_id);
+    CREATE INDEX IF NOT EXISTS idx_course_sections_section_id ON course_sections (section_id);
     """
     statements = [s.strip() for s in create_table_query.split(";") if s.strip()]
     with get_connection() as conn:
@@ -216,6 +255,13 @@ def init_db():
 
     repair_enrolled_users_foreign_keys()
     repair_post_image_urls()
+
+    try:
+        from .sections import seed_default_sections_if_empty
+        seed_default_sections_if_empty()
+    except Exception as e:
+        logger.debug(f"Seeding default sections skipped or failed: {e}")
+
     logger.info("Database schema initialized successfully.")
 
 

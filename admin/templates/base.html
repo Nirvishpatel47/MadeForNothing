@@ -15,7 +15,8 @@
         <span class="admin-badge">Admin &bull; Local Only</span>
       </div>
       <nav class="admin-nav">
-        <a href="/" {% if admin_section == 'posts' %}style="font-weight: 700;"{% endif %}>Posts</a>
+        <a href="/" {% if admin_section == 'posts' or not admin_section %}style="font-weight: 700;"{% endif %}>Posts</a>
+        <a href="/sections" {% if admin_section == 'sections' %}style="font-weight: 700;"{% endif %}>Sections</a>
         <a href="/courses" {% if admin_section == 'courses' %}style="font-weight: 700;"{% endif %}>Courses</a>
         <a href="/payments" {% if admin_section == 'payments' %}style="font-weight: 700;"{% endif %}>Payments</a>
         <a href="/students" {% if admin_section == 'students' %}style="font-weight: 700;"{% endif %}>Students</a>

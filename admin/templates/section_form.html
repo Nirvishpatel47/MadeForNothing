@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}
+  {{ "Edit Section" if section else "New Section" }} &mdash; MADE FOR NOTHING Admin
+{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+  <div>
+    <a href="/sections" style="font-size: 0.85rem; color: var(--admin-muted); text-decoration: none;">&larr; Back to Sections</a>
+    <h1 style="margin: 0.25rem 0 0; font-size: 1.5rem;">
+      {{ "Edit Section" if section else "New Discovery Section" }}
+    </h1>
+  </div>
+  {% if section and section.is_published %}
+    <a href="{{ public_base_url }}/sections/{{ section.slug }}" target="_blank" class="btn btn-secondary btn-sm">
+      View Live &nearr;
+    </a>
+  {% endif %}
+</div>
+
+{% if error %}
+  <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+    {{ error }}
+  </div>
+{% endif %}
+
+<form method="POST" action="{{ '/sections/' ~ section.id ~ '/edit' if section else '/sections/new' }}">
+  <div class="form-card" style="margin-bottom: 1.5rem;">
+    <div class="form-grid form-grid-2">
+      <div class="form-group">
+        <label for="name">Section Name *</label>
+        <input type="text" id="name" name="name" value="{{ section.name if section else '' }}" required class="form-control" placeholder="e.g. Systems &amp; Compilers">
+      </div>
+
+      <div class="form-group">
+        <label for="slug">URL Slug *</label>
+        <input type="text" id="slug" name="slug" value="{{ section.slug if section else '' }}" required class="form-control font-mono" placeholder="e.g. systems-compilers">
+        <span class="form-hint">Used in URLs like /writing/section/systems-compilers or /sections/systems-compilers</span>
+      </div>
+    </div>
+
+    <div class="form-group" style="margin-top: 1.25rem;">
+      <label for="description">Description / Subtitle</label>
+      <textarea id="description" name="description" rows="2" class="form-control" placeholder="Brief thematic description displayed on the discovery header...">{{ section.description if section else '' }}</textarea>
+    </div>
+  </div>
+
+  <div class="form-card" style="margin-bottom: 1.5rem;">
+    <label style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0.25rem; display: block;">
+      Applicable Content Archives
+    </label>
+    <p class="form-hint" style="margin-bottom: 1rem;">
+      Choose which archive categories this discovery section appears under. If none or "All Types" is selected, it will be globally available across all content.
+    </p>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem;">
+      {% set current_types = section.content_types if (section and section.content_types) else [] %}
+      {% for t in valid_types %}
+        <label style="display: flex; align-items: center; gap: 0.6rem; background: #fafafa; padding: 0.6rem 0.85rem; border: 1px solid var(--admin-border); border-radius: 4px; cursor: pointer; margin: 0;">
+          <input type="checkbox" name="content_types[]" value="{{ t }}" {% if t in current_types %}checked{% endif %} style="width: 1.1rem; height: 1.1rem;">
+          <span style="font-size: 0.9rem; text-transform: capitalize; font-weight: 500;">{{ t }}</span>
+        </label>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="form-card" style="margin-bottom: 1.5rem;">
+    <div class="form-grid form-grid-2">
+      <div class="form-group">
+        <label for="sort_order">Display Sort Order</label>
+        <input type="number" id="sort_order" name="sort_order" value="{{ section.sort_order if section else 0 }}" class="form-control font-mono" style="max-width: 150px;">
+        <span class="form-hint">Lower numbers appear first (e.g. 1, 2, 3).</span>
+      </div>
+
+      <div class="form-group" style="gap: 0.75rem; background: #fdfdfd; padding: 0.85rem; border: 1px solid var(--admin-border); border-radius: 4px;">
+        <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; margin: 0;">
+          <input type="checkbox" name="is_featured" value="1" {% if section and section.is_featured %}checked{% endif %} style="width: 1.15rem; height: 1.15rem; margin-top: 0.15rem;">
+          <div>
+            <strong style="color: #854d0e;">★ Feature in Top Pill Bar</strong>
+            <div style="font-size: 0.75rem; color: var(--admin-muted);">
+              Highlight as one of the 3–4 primary discovery pills near the top of archive pages.
+            </div>
+          </div>
+        </label>
+
+        <hr style="margin: 0.25rem 0; border: none; border-top: 1px dashed var(--admin-border);">
+
+        <label style="display: flex; align-items: flex-start; gap: 0.6rem; cursor: pointer; margin: 0;">
+          <input type="checkbox" name="is_published" value="1" {% if not section or section.is_published %}checked{% endif %} style="width: 1.15rem; height: 1.15rem; margin-top: 0.15rem;">
+          <div>
+            <strong style="color: var(--admin-text);">Active &amp; Visible</strong>
+            <div style="font-size: 0.75rem; color: var(--admin-muted);">
+              When active, readers can explore and filter articles by this section.
+            </div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div style="display: flex; gap: 1rem; align-items: center;">
+    <button type="submit" class="btn btn-primary" style="padding: 0.6rem 1.6rem; font-size: 0.95rem;">
+      {{ "Save Changes" if section else "Create Section" }}
+    </button>
+    <a href="/sections" class="btn btn-secondary">Cancel</a>
+  </div>
+</form>
+
+<script>
+  // Simple slug generation helper
+  const nameInput = document.getElementById('name');
+  const slugInput = document.getElementById('slug');
+  let slugManuallyEdited = {{ 'true' if section else 'false' }};
+
+  slugInput.addEventListener('input', () => {
+    slugManuallyEdited = true;
+  });
+
+  nameInput.addEventListener('input', () => {
+    if (!slugManuallyEdited) {
+      slugInput.value = nameInput.value
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .trim()
+        .replace(/[\s_-]+/g, '-');
+    }
+  });
+</script>
+{% endblock %}

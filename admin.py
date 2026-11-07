@@ -131,11 +131,19 @@ def new_post_form(request: Request):
         logger.error(f"Error fetching selector posts: {e}")
         available_posts = []
 
+    try:
+        sections = db.get_all_sections_admin()
+    except Exception as e:
+        logger.error(f"Error fetching sections for new post: {e}")
+        sections = []
+
     return templates.TemplateResponse("form.html", {
         "request": request,
         "post": None,
         "valid_types": db.VALID_TYPES,
         "available_posts": available_posts,
+        "sections": sections,
+        "selected_section_ids": [],
         "public_base_url": PUBLIC_BASE_URL,
         "error": None
     })
@@ -168,6 +176,10 @@ async def create_post_action(request: Request):
 
     # Parse continue reading slugs (max 3)
     continue_reading_slugs = [s.strip() for s in form_data.getlist("continue_reading_slugs[]") if s.strip()][:3]
+
+    # Parse assigned section IDs
+    raw_section_ids = form_data.getlist("section_ids[]") + form_data.getlist("section_ids")
+    section_ids = list(dict.fromkeys([int(s) for s in raw_section_ids if str(s).isdigit()]))
 
     # Featured image fields
     featured_image_alt = form_data.get("featured_image_alt", "").strip()
@@ -245,7 +257,12 @@ async def create_post_action(request: Request):
     }
 
     try:
-        db.create_post(data)
+        new_post = db.create_post(data)
+        if new_post and "id" in new_post and section_ids:
+            try:
+                db.set_post_sections(new_post["id"], section_ids)
+            except Exception as sec_err:
+                logger.error(f"Error setting sections for post {new_post['id']}: {sec_err}")
         return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         logger.error(f"Failed to create post: {e}")
@@ -253,12 +270,18 @@ async def create_post_action(request: Request):
             available_posts = db.get_all_posts_for_selector()
         except Exception:
             available_posts = []
+        try:
+            sections = db.get_all_sections_admin()
+        except Exception:
+            sections = []
 
         return templates.TemplateResponse("form.html", {
             "request": request,
             "post": data,
             "valid_types": db.VALID_TYPES,
             "available_posts": available_posts,
+            "sections": sections,
+            "selected_section_ids": section_ids,
             "public_base_url": PUBLIC_BASE_URL,
             "error": f"Error saving post: {e}"
         }, status_code=status.HTTP_400_BAD_REQUEST)
@@ -276,11 +299,21 @@ def edit_post_form(request: Request, post_id: int):
         logger.error(f"Error fetching selector posts: {e}")
         available_posts = []
 
+    try:
+        sections = db.get_all_sections_admin()
+        selected_section_ids = db.get_section_ids_for_post(post_id)
+    except Exception as e:
+        logger.error(f"Error fetching sections for post {post_id}: {e}")
+        sections = []
+        selected_section_ids = []
+
     return templates.TemplateResponse("form.html", {
         "request": request,
         "post": post,
         "valid_types": db.VALID_TYPES,
         "available_posts": available_posts,
+        "sections": sections,
+        "selected_section_ids": selected_section_ids,
         "public_base_url": PUBLIC_BASE_URL,
         "error": None
     })
@@ -317,6 +350,10 @@ async def update_post_action(request: Request, post_id: int):
 
     # Parse continue reading slugs (max 3)
     continue_reading_slugs = [s.strip() for s in form_data.getlist("continue_reading_slugs[]") if s.strip()][:3]
+
+    # Parse assigned section IDs
+    raw_section_ids = form_data.getlist("section_ids[]") + form_data.getlist("section_ids")
+    section_ids = list(dict.fromkeys([int(s) for s in raw_section_ids if str(s).isdigit()]))
 
     # Handle featured image removal or replacement
     remove_featured_image = form_data.get("remove_featured_image") in ("1", "true", "True")
@@ -408,6 +445,10 @@ async def update_post_action(request: Request, post_id: int):
 
     try:
         db.update_post(post_id, data)
+        try:
+            db.set_post_sections(post_id, section_ids)
+        except Exception as sec_err:
+            logger.error(f"Error updating sections for post {post_id}: {sec_err}")
         return RedirectResponse(url="/", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         logger.error(f"Failed to update post {post_id}: {e}")
@@ -415,6 +456,10 @@ async def update_post_action(request: Request, post_id: int):
             available_posts = db.get_all_posts_for_selector(exclude_id=post_id)
         except Exception:
             available_posts = []
+        try:
+            sections = db.get_all_sections_admin()
+        except Exception:
+            sections = []
 
         data["id"] = post_id
         return templates.TemplateResponse("form.html", {
@@ -422,6 +467,8 @@ async def update_post_action(request: Request, post_id: int):
             "post": data,
             "valid_types": db.VALID_TYPES,
             "available_posts": available_posts,
+            "sections": sections,
+            "selected_section_ids": section_ids,
             "public_base_url": PUBLIC_BASE_URL,
             "error": f"Error updating post: {e}"
         }, status_code=status.HTTP_400_BAD_REQUEST)
@@ -536,6 +583,171 @@ async def preview_markdown(request: Request):
 
 
 # =============================================================================
+# SECTION MANAGEMENT ROUTES
+# =============================================================================
+
+@admin_app.get("/sections", response_class=HTMLResponse)
+def list_sections_admin(request: Request):
+    try:
+        sections = db.get_all_sections_admin()
+    except Exception as e:
+        logger.error(f"Error fetching sections for admin: {e}")
+        sections = []
+
+    return templates.TemplateResponse("sections_dashboard.html", {
+        "request": request,
+        "admin_section": "sections",
+        "sections": sections,
+        "valid_types": db.VALID_SECTION_TYPES,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.get("/sections/new", response_class=HTMLResponse)
+def new_section_form(request: Request):
+    return templates.TemplateResponse("section_form.html", {
+        "request": request,
+        "admin_section": "sections",
+        "section": None,
+        "valid_types": db.VALID_SECTION_TYPES,
+        "error": None,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.post("/sections/new", response_class=HTMLResponse)
+async def create_section_action(request: Request):
+    form_data = await request.form()
+    name = form_data.get("name", "").strip()
+    slug = form_data.get("slug", "").strip()
+    description = form_data.get("description", "").strip()
+    content_types = form_data.getlist("content_types[]") + form_data.getlist("content_types")
+    content_types = list(dict.fromkeys([t.strip().lower() for t in content_types if t.strip()]))
+    is_featured = form_data.get("is_featured") is not None
+    is_published = form_data.get("is_published") is not None
+    try:
+        sort_order = int(form_data.get("sort_order", 0))
+    except (ValueError, TypeError):
+        sort_order = 0
+
+    data = {
+        "name": name,
+        "slug": slug,
+        "description": description,
+        "content_types": content_types,
+        "is_featured": is_featured,
+        "is_published": is_published,
+        "sort_order": sort_order,
+    }
+
+    try:
+        db.create_section(data)
+        return RedirectResponse(url="/sections", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        logger.error(f"Error creating section: {e}")
+        return templates.TemplateResponse("section_form.html", {
+            "request": request,
+            "admin_section": "sections",
+            "section": data,
+            "valid_types": db.VALID_SECTION_TYPES,
+            "error": f"Failed to save section: {e}",
+            "public_base_url": PUBLIC_BASE_URL
+        }, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@admin_app.get("/sections/{section_id}/edit", response_class=HTMLResponse)
+def edit_section_form(request: Request, section_id: int):
+    section = db.get_section_by_id(section_id)
+    if not section:
+        raise HTTPException(status_code=404, detail="Section not found")
+
+    return templates.TemplateResponse("section_form.html", {
+        "request": request,
+        "admin_section": "sections",
+        "section": section,
+        "valid_types": db.VALID_SECTION_TYPES,
+        "error": None,
+        "public_base_url": PUBLIC_BASE_URL
+    })
+
+
+@admin_app.post("/sections/{section_id}/edit", response_class=HTMLResponse)
+async def update_section_action(request: Request, section_id: int):
+    section = db.get_section_by_id(section_id)
+    if not section:
+        raise HTTPException(status_code=404, detail="Section not found")
+
+    form_data = await request.form()
+    name = form_data.get("name", "").strip()
+    slug = form_data.get("slug", "").strip()
+    description = form_data.get("description", "").strip()
+    content_types = form_data.getlist("content_types[]") + form_data.getlist("content_types")
+    content_types = list(dict.fromkeys([t.strip().lower() for t in content_types if t.strip()]))
+    is_featured = form_data.get("is_featured") is not None
+    is_published = form_data.get("is_published") is not None
+    try:
+        sort_order = int(form_data.get("sort_order", 0))
+    except (ValueError, TypeError):
+        sort_order = 0
+
+    data = {
+        "name": name,
+        "slug": slug,
+        "description": description,
+        "content_types": content_types,
+        "is_featured": is_featured,
+        "is_published": is_published,
+        "sort_order": sort_order,
+    }
+
+    try:
+        db.update_section(section_id, data)
+        return RedirectResponse(url="/sections", status_code=status.HTTP_303_SEE_OTHER)
+    except Exception as e:
+        logger.error(f"Error updating section: {e}")
+        return templates.TemplateResponse("section_form.html", {
+            "request": request,
+            "admin_section": "sections",
+            "section": {**section, **data},
+            "valid_types": db.VALID_SECTION_TYPES,
+            "error": f"Failed to update section: {e}",
+            "public_base_url": PUBLIC_BASE_URL
+        }, status_code=status.HTTP_400_BAD_REQUEST)
+
+
+@admin_app.post("/sections/{section_id}/toggle-publish")
+def toggle_section_publish_action(section_id: int):
+    try:
+        db.toggle_section_publish(section_id)
+    except Exception as e:
+        logger.error(f"Error toggling section publish {section_id}: {e}")
+    return RedirectResponse(url="/sections", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@admin_app.post("/sections/{section_id}/delete")
+def delete_section_action(section_id: int):
+    try:
+        db.delete_section(section_id)
+    except Exception as e:
+        logger.error(f"Error deleting section {section_id}: {e}")
+    return RedirectResponse(url="/sections", status_code=status.HTTP_303_SEE_OTHER)
+
+
+@admin_app.post("/sections/reorder")
+async def reorder_sections_action(request: Request):
+    try:
+        body = await request.json()
+        ordered_ids = body.get("ordered_ids", [])
+        if ordered_ids:
+            clean_ids = [int(x) for x in ordered_ids if str(x).isdigit()]
+            db.reorder_sections(clean_ids)
+        return JSONResponse(content={"success": True})
+    except Exception as e:
+        logger.error(f"Error reordering sections: {e}")
+        return JSONResponse(status_code=400, content={"success": False, "error": str(e)})
+
+
+# =============================================================================
 # COURSE MANAGEMENT ROUTES
 # =============================================================================
 
@@ -558,10 +770,18 @@ def list_courses_admin(request: Request):
 
 @admin_app.get("/courses/new", response_class=HTMLResponse)
 def new_course_form(request: Request):
+    try:
+        sections = db.get_all_sections_admin()
+    except Exception as e:
+        logger.error(f"Error fetching sections for new course: {e}")
+        sections = []
+
     return templates.TemplateResponse("course_form.html", {
         "request": request,
         "admin_section": "courses",
         "course": None,
+        "sections": sections,
+        "selected_section_ids": [],
         "error": None,
         "public_base_url": PUBLIC_BASE_URL
     })
@@ -594,6 +814,9 @@ async def create_course_action(request: Request):
         if q.strip() and a.strip():
             faq.append({"question": q.strip(), "answer": a.strip()})
 
+    raw_section_ids = form_data.getlist("section_ids[]") + form_data.getlist("section_ids")
+    section_ids = list(dict.fromkeys([int(s) for s in raw_section_ids if str(s).isdigit()]))
+
     data = {
         "title": title,
         "slug": slug,
@@ -609,14 +832,25 @@ async def create_course_action(request: Request):
     }
 
     try:
-        db.create_course(data)
+        new_course = db.create_course(data)
+        if new_course and "id" in new_course and section_ids:
+            try:
+                db.set_course_sections(new_course["id"], section_ids)
+            except Exception as sec_err:
+                logger.error(f"Error setting sections for course {new_course['id']}: {sec_err}")
         return RedirectResponse(url="/courses", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         logger.error(f"Error creating course: {e}")
+        try:
+            sections = db.get_all_sections_admin()
+        except Exception:
+            sections = []
         return templates.TemplateResponse("course_form.html", {
             "request": request,
             "admin_section": "courses",
             "course": data,
+            "sections": sections,
+            "selected_section_ids": section_ids,
             "error": f"Failed to save course: {e}",
             "public_base_url": PUBLIC_BASE_URL
         }, status_code=status.HTTP_400_BAD_REQUEST)
@@ -628,10 +862,20 @@ def edit_course_form(request: Request, course_id: int):
     if not course:
         raise HTTPException(status_code=404, detail="Course not found")
 
+    try:
+        sections = db.get_all_sections_admin()
+        selected_section_ids = db.get_section_ids_for_course(course_id)
+    except Exception as e:
+        logger.error(f"Error fetching sections for course {course_id}: {e}")
+        sections = []
+        selected_section_ids = []
+
     return templates.TemplateResponse("course_form.html", {
         "request": request,
         "admin_section": "courses",
         "course": course,
+        "sections": sections,
+        "selected_section_ids": selected_section_ids,
         "error": None,
         "public_base_url": PUBLIC_BASE_URL
     })
@@ -663,6 +907,9 @@ async def update_course_action(request: Request, course_id: int):
         if q.strip() and a.strip():
             faq.append({"question": q.strip(), "answer": a.strip()})
 
+    raw_section_ids = form_data.getlist("section_ids[]") + form_data.getlist("section_ids")
+    section_ids = list(dict.fromkeys([int(s) for s in raw_section_ids if str(s).isdigit()]))
+
     data = {
         "title": title,
         "slug": slug,
@@ -679,14 +926,24 @@ async def update_course_action(request: Request, course_id: int):
 
     try:
         db.update_course(course_id, data)
+        try:
+            db.set_course_sections(course_id, section_ids)
+        except Exception as sec_err:
+            logger.error(f"Error updating sections for course {course_id}: {sec_err}")
         return RedirectResponse(url="/courses", status_code=status.HTTP_303_SEE_OTHER)
     except Exception as e:
         logger.error(f"Error updating course {course_id}: {e}")
+        try:
+            sections = db.get_all_sections_admin()
+        except Exception:
+            sections = []
         data["id"] = course_id
         return templates.TemplateResponse("course_form.html", {
             "request": request,
             "admin_section": "courses",
             "course": data,
+            "sections": sections,
+            "selected_section_ids": section_ids,
             "error": f"Failed to update course: {e}",
             "public_base_url": PUBLIC_BASE_URL
         }, status_code=status.HTTP_400_BAD_REQUEST)
